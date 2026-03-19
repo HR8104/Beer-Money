@@ -1,0 +1,192 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Beer Money | Turn Talent into Earning{% endblock %}
+
+{% block head_extra %}
+    <link rel="stylesheet" href="{% static 'core/css/index.css' %}">
+{% endblock %}
+
+{% block content %}
+    <header>
+        <a href="/" class="logo">Beer Money</a>
+        <button class="btn-login" id="loginHeader">LOG IN</button>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1 class="reveal">DANCE. SING.<br><span class="highlight">GET PAID.</span></h1>
+            <p class="reveal delay-1">The ultimate platform for student creators. Monetize your hobbies, perform at local events, and build your portfolio while you study.</p>
+            <a href="#" class="btn-login reveal delay-2" style="padding: 1.2rem 3rem; font-size: 1.1rem;">GET STARTED</a>
+        </section>
+
+        <!-- BROWSE GIGS -->
+        <section class="gigs-section" id="gigs">
+            <div class="gigs-header">
+                <div>
+                    <div class="section-tag">Open Opportunities</div>
+                    <h2 class="gigs-title">Browse latest gigs</h2>
+                </div>
+                <div class="filter-row">
+                    <button class="filter-btn active" type="button">All</button>
+                    <button class="filter-btn" type="button">Remote</button>
+                    <button class="filter-btn" type="button">Field</button>
+                    <button class="filter-btn" type="button">Weekend</button>
+                </div>
+            </div>
+
+            <div class="gigs-grid">
+                <div class="gig-full-card">
+                    <div class="gig-full-header">
+                        <div class="gig-full-icon">📦</div>
+                        <span class="gig-badge hot">Hot</span>
+                    </div>
+                    <h3>Warehouse Packing Assistant</h3>
+                    <p>Help pack and label orders at a local fulfilment centre. No experience needed. Safety shoes required.</p>
+                    <div class="gig-tags">
+                        <span class="gig-tag">Physical</span>
+                        <span class="gig-tag">Ahmedabad</span>
+                        <span class="gig-tag">Same-day pay</span>
+                    </div>
+                    <div class="gig-full-footer">
+                        <div>
+                            <div class="gig-pay">₹900 / day</div>
+                            <div class="gig-time">6 hrs · Naroda</div>
+                        </div>
+                        <button class="apply-btn" type="button">Apply Now</button>
+                    </div>
+                </div>
+
+                <div class="gig-full-card">
+                    <div class="gig-full-header">
+                        <div class="gig-full-icon">📋</div>
+                        <span class="gig-badge new">New</span>
+                    </div>
+                    <h3>Online Survey Data Entry</h3>
+                    <p>Transcribe and enter survey responses into a spreadsheet. Remote work, flexible timing throughout the day.</p>
+                    <div class="gig-tags">
+                        <span class="gig-tag">Remote</span>
+                        <span class="gig-tag">Flexible</span>
+                        <span class="gig-tag">Instant payout</span>
+                    </div>
+                    <div class="gig-full-footer">
+                        <div>
+                            <div class="gig-pay">₹400 / task</div>
+                            <div class="gig-time">2 hrs · Remote</div>
+                        </div>
+                        <button class="apply-btn" type="button">Apply Now</button>
+                    </div>
+                </div>
+
+                <div class="gig-full-card">
+                    <div class="gig-full-header">
+                        <div class="gig-full-icon">🚗</div>
+                        <span class="gig-badge">Easy</span>
+                    </div>
+                    <h3>Local Parcel Delivery</h3>
+                    <p>Deliver packages across a 10 km radius using your own vehicle. Fuel allowance provided by employer.</p>
+                    <div class="gig-tags">
+                        <span class="gig-tag">Field</span>
+                        <span class="gig-tag">Vehicle needed</span>
+                        <span class="gig-tag">Weekly pay</span>
+                    </div>
+                    <div class="gig-full-footer">
+                        <div>
+                            <div class="gig-pay">₹650 / route</div>
+                            <div class="gig-time">3 hrs · Ahmedabad</div>
+                        </div>
+                        <button class="apply-btn" type="button">Apply Now</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="gigs-footer-row">
+                <button class="btn-outline" type="button">View All Gigs →</button>
+            </div>
+        </section>
+
+        <section class="features">
+            <div class="features-content">
+                <h2>WHY STARGIG?</h2>
+                <div class="feature-item">
+                    <div class="dot"></div>
+                    <div>
+                        <h3>Verified Employers</h3>
+                        <p style="color: var(--text-muted)">We vet every organizer to ensure a safe workspace for students.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="dot"></div>
+                    <div>
+                        <h3>Instant Payouts</h3>
+                        <p style="color: var(--text-muted)">Get paid directly into your wallet within 24 hours of completing a gig.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="dot"></div>
+                    <div>
+                        <h3>Flexible Schedule</h3>
+                        <p style="color: var(--text-muted)">Gigs that fit around your lectures and exams. You choose when you work.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="features-visual" style="border: 1px solid var(--glass-border); border-radius: 40px; overflow: hidden; background: var(--glass);">
+                <img src="{% static 'core/images/Beer_money1.png' %}" alt="StarGig Performers" style="width: 100%; height: 100%; object-fit: cover; opacity: 0.8;">
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-logo">Beer Money</div>
+        <div class="copyright">© 2026 Beer Money. Empowering Student Artists.</div>
+        <div style="display: flex; gap: 1.5rem;">
+            <a href="#" style="color: var(--text-muted); text-decoration: none;">Instagram</a>
+            <a href="#" style="color: var(--text-muted); text-decoration: none;">Twitter</a>
+        </div>
+    </footer>
+
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-content">
+            <button class="close-modal" id="closeModal">&times;</button>
+            <h1 class="login-title">Login</h1>
+            <p class="login-subtitle">Login through Email OTP</p>
+
+            <div class="login-card">
+                <div id="modalEmailSection">
+                    <div class="form-group">
+                        <label class="form-label" for="modalEmailInput">Email</label>
+                        <input type="email" class="input-field" id="modalEmailInput" name="email" placeholder="Enter your email address">
+                    </div>
+                    <button class="btn-style" id="modalSendOtpBtn" onclick="modalSendOTP()">Send OTP</button>
+                </div>
+
+                <div class="otp-section" id="modalOtpSection">
+                    <p class="otp-instruction" style="margin-bottom: 1.5rem; color: var(--text-muted); font-size: 0.9rem;">
+                        Enter the OTP sent to <strong id="modalSentEmailDisplay" style="color: var(--primary);"></strong>
+                    </p>
+
+                    <div class="otp-divider">
+                        <span>Enter OTP</span>
+                    </div>
+
+                    <div class="otp-inputs" id="modalOtpInputs">
+                        <input type="text" maxlength="1" class="otp-input" id="modalOtpDigit0" name="otp_digit_0" data-index="0" aria-label="OTP digit 1">
+                        <input type="text" maxlength="1" class="otp-input" id="modalOtpDigit1" name="otp_digit_1" data-index="1" aria-label="OTP digit 2">
+                        <input type="text" maxlength="1" class="otp-input" id="modalOtpDigit2" name="otp_digit_2" data-index="2" aria-label="OTP digit 3">
+                        <input type="text" maxlength="1" class="otp-input" id="modalOtpDigit3" name="otp_digit_3" data-index="3" aria-label="OTP digit 4">
+                        <input type="text" maxlength="1" class="otp-input" id="modalOtpDigit4" name="otp_digit_4" data-index="4" aria-label="OTP digit 5">
+                        <input type="text" maxlength="1" class="otp-input" id="modalOtpDigit5" name="otp_digit_5" data-index="5" aria-label="OTP digit 6">
+                    </div>
+
+                    <a class="resend-link" id="modalResendBtn" onclick="modalResendOTP()">Resend OTP</a>
+
+                    <button class="btn-style" id="modalLoginBtn" style="background: var(--primary); color: var(--bg); margin-bottom: 0;" onclick="modalVerifyOTP()">Login</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'core/js/index.js' %}"></script>
+{% endblock %}

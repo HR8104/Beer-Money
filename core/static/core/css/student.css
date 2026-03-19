@@ -1,0 +1,189 @@
+/* Student Dashboard Styling */
+
+:root {
+    --accent-green: #10b981;
+    --accent-orange: #f59e0b;
+    --accent-red: #ef4444;
+}
+
+.student-dashboard-tabs {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+    justify-content: center;
+}
+
+.tab-link {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+    font-family: 'Syne', sans-serif;
+}
+
+.tab-link.active {
+    color: var(--primary);
+    background: rgba(var(--primary-rgb), 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(var(--primary-rgb), 0.2);
+}
+
+.tab-link:hover:not(.active) {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-1px);
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Stats Bar */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, var(--surface), rgba(255,255,255,0.03));
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    font-family: 'Syne', sans-serif;
+    line-height: 1;
+    margin-top: 0.5rem;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Applications List */
+.app-card {
+    background: linear-gradient(to right, var(--surface), rgba(255,255,255,0.02));
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-card:hover {
+    border-color: var(--primary);
+    transform: translateX(8px);
+    box-shadow: -10px 10px 30px rgba(0,0,0,0.2);
+}
+
+.app-status {
+    padding: 0.4rem 1rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.status-PENDING { background: rgba(245, 158, 11, 0.1); color: var(--accent-orange); border: 1px solid rgba(245, 158, 11, 0.2); }
+.status-ACCEPTED { background: rgba(16, 185, 129, 0.1); color: var(--accent-green); border: 1px solid rgba(16, 185, 129, 0.2); }
+.status-REJECTED { background: rgba(239, 68, 68, 0.1); color: var(--accent-red); border: 1px solid rgba(239, 68, 68, 0.2); }
+
+.app-info { flex: 1; }
+.app-title { font-family: 'Syne'; font-size: 1.2rem; color: var(--primary); margin-bottom: 0.3rem; }
+.app-meta { font-size: 0.85rem; color: var(--text-muted); display: flex; gap: 1rem; }
+
+.app-date { font-size: 0.8rem; color: var(--text-muted); }
+
+@media (max-width: 900px) {
+    .student-dashboard-tabs {
+        justify-content: flex-start;
+        overflow-x: auto;
+        white-space: nowrap;
+        gap: 0.75rem;
+        padding-bottom: 0.75rem;
+        scrollbar-width: thin;
+    }
+
+    .tab-link {
+        flex: 0 0 auto;
+        font-size: 0.92rem;
+        padding: 0.45rem 0.8rem;
+    }
+
+    .stats-row {
+        grid-template-columns: 1fr;
+        gap: 0.9rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        padding: 1rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+    }
+
+    .app-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.9rem;
+        padding: 1rem;
+    }
+
+    .app-card:hover {
+        transform: none;
+    }
+
+    .app-info {
+        width: 100%;
+    }
+
+    .app-title {
+        font-size: 1.05rem;
+    }
+
+    .app-meta {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .app-status {
+        align-self: flex-start;
+    }
+}

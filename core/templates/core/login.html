@@ -1,0 +1,52 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Login | Beer Money{% endblock %}
+
+{% block head_extra %}
+    <link rel="stylesheet" href="{% static 'core/css/login.css' %}">
+{% endblock %}
+
+{% block body_class %}login-body{% endblock %}
+
+{% block content %}
+    <div class="login-container">
+        <a href="/" class="back-link">← Back to Home</a>
+        <h1 class="login-title">Login</h1>
+        <p class="login-subtitle">Login through Email OTP</p>
+
+        <div class="login-card">
+            <div id="emailSection">
+                <div class="form-group">
+                    <label class="form-label" for="emailInput">Email</label>
+                    <input type="email" class="input-field" id="emailInput" name="email" placeholder="Enter your email address">
+                </div>
+                <button class="btn-style" id="sendOtpBtn" onclick="sendOTP()">Send OTP</button>
+            </div>
+
+            <div class="otp-section" id="otpSection">
+                <p class="otp-instruction">Enter the OTP sent to <strong id="sentEmailDisplay"></strong></p>
+
+                <div class="otp-divider">
+                    <span>Enter OTP</span>
+                </div>
+
+                <div class="otp-inputs" id="otpInputs">
+                    <input type="text" maxlength="1" class="otp-input" id="otpDigit0" name="otp_digit_0" data-index="0" aria-label="OTP digit 1">
+                    <input type="text" maxlength="1" class="otp-input" id="otpDigit1" name="otp_digit_1" data-index="1" aria-label="OTP digit 2">
+                    <input type="text" maxlength="1" class="otp-input" id="otpDigit2" name="otp_digit_2" data-index="2" aria-label="OTP digit 3">
+                    <input type="text" maxlength="1" class="otp-input" id="otpDigit3" name="otp_digit_3" data-index="3" aria-label="OTP digit 4">
+                    <input type="text" maxlength="1" class="otp-input" id="otpDigit4" name="otp_digit_4" data-index="4" aria-label="OTP digit 5">
+                    <input type="text" maxlength="1" class="otp-input" id="otpDigit5" name="otp_digit_5" data-index="5" aria-label="OTP digit 6">
+                </div>
+
+                <a class="resend-link" id="resendBtn" onclick="resendOTP()">Resend OTP</a>
+
+                <button class="btn-style btn-primary" id="loginBtn" onclick="verifyOTP()">Login</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'core/js/login.js' %}"></script>
+{% endblock %}

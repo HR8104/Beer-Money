@@ -1,0 +1,192 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Employer Dashboard | Beer Money{% endblock %}
+
+{% block head_extra %}
+    <link rel="stylesheet" href="{% static 'core/css/employer.css' %}">
+{% endblock %}
+
+{% block body_class %}employer-bg{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <header class="employer-header">
+            <h1 class="title">Employer <span>Dashboard</span></h1>
+            <div style="display:flex; gap:1rem; align-items:center;">
+                <span style="color:var(--text-muted);">{{ email }}</span>
+                <a href="javascript:void(0)" onclick="switchTab('profile', document.querySelector('.tab-btn:nth-child(2)'));">
+                    <div class="profile-icon" style="display: flex; align-items: center; justify-content: center; background: var(--surface); color: var(--primary); font-weight: 800; font-size: 1.2rem;">
+                        {{ employer.company_name|slice:":1"|upper }}
+                    </div>
+                </a>
+                <a href="/logout/" class="logout-btn">Log Out</a>
+            </div>
+        </header>
+
+        {% if not is_registered %}
+        <div class="profile-card" style="background: var(--surface); padding: 2.5rem; border-radius: 12px; border: 1px solid var(--border-light); max-width: 800px; margin: 5rem auto 0;">
+            <h2 style="font-family: 'Syne'; color: var(--primary); margin-bottom: 0.5rem;">Complete Profile</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Company details required to post gigs.</p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div><label class="form-label" for="empName" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Full Name</label><input type="text" class="input-field" id="empName" name="full_name"></div>
+                <div><label class="form-label" for="empEmail" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Email</label><input type="text" class="input-field" id="empEmail" name="email" value="{{ email }}" disabled style="opacity:0.6;"></div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div><label class="form-label" for="empPhone" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Phone</label><input type="tel" class="input-field" id="empPhone" name="phone"></div>
+                <div><label class="form-label" for="empCompany" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Company</label><input type="text" class="input-field" id="empCompany" name="company_name"></div>
+            </div>
+            <div style="margin-bottom: 1.5rem;"><label class="form-label" for="empLocation" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Location</label><input type="text" class="input-field" id="empLocation" name="location"></div>
+            <button class="btn-create" style="width:100%; padding:1rem;" onclick="saveEmpProfile()">Save Profile</button>
+        </div>
+        {% else %}
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('dashboard', this)">Dashboard</button>
+            <button class="tab-btn" onclick="switchTab('profile', this)">Profile</button>
+            <button class="tab-btn" onclick="switchTab('applicants', this)">Applicants</button>
+            <button class="tab-btn" onclick="switchTab('hired', this)">Hired</button>
+        </div>
+
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="stats-bar">
+                <div class="stat-item">Active Gigs <span class="stat-badge">{{ stats.active_gigs }}</span></div>
+                <div class="stat-item">Applicants <span class="stat-badge">{{ stats.total_apps }}</span></div>
+                <div class="stat-item">Hired <span class="stat-badge">{{ stats.hired_count }}</span></div>
+            </div>
+            <div class="section-header">
+                <div style="font-weight: 600;">My Posted Gigs</div>
+                <button class="btn-create" onclick="openGigModal()">+ Post Gig</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Gig Title</th><th>Timing</th><th>Posted</th><th>Status</th><th>Applicants</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for gig in gigs %}
+                        <tr>
+                            <td style="font-weight:600;">{{ gig.title }}</td>
+                            <td>{{ gig.date|date:"M d" }}<br><small>{{ gig.time|time:"h:i A" }}</small></td>
+                            <td>{{ gig.created_at|date:"M d" }}</td>
+                            <td><span class="status-badge {% if gig.status == 'ACTIVE' %}status-active{% elif gig.status == 'DRAFT' %}status-draft{% else %}status-closed{% endif %}">{{ gig.get_status_display }}</span></td>
+                            <td>{{ gig.applications.count }}</td>
+                            <td>
+                                <button class="btn-action" onclick="openEditModal('{{ gig.id }}')">Edit</button>
+                                <button class="btn-action" style="background:var(--accent-orange);" onclick="manageGig('{{ gig.id }}', 'close')">Close</button>
+                            </td>
+                        </tr>
+                        {% empty %}<tr><td colspan="6" style="text-align:center; padding:3rem;">No gigs posted yet.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-profile" class="tab-content">
+            <div class="profile-card" style="background: var(--surface); padding: 2.5rem; border-radius: 12px; border: 1px solid var(--border-light); max-width: 800px; margin: 0 auto;">
+                <h2 style="font-family:'Syne'; color:var(--primary); margin-bottom:2rem; text-align:center;">Edit Profile</h2>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+                    <div><label class="form-label" for="editName" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Name</label><input type="text" class="input-field" id="editName" name="full_name" value="{{ employer.full_name }}"></div>
+                    <div><label class="form-label" for="editPhone" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Phone</label><input type="tel" class="input-field" id="editPhone" name="phone" value="{{ employer.phone }}"></div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+                    <div><label class="form-label" for="editCompany" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Company</label><input type="text" class="input-field" id="editCompany" name="company_name" value="{{ employer.company_name }}"></div>
+                    <div><label class="form-label" for="editLocation" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Location</label><input type="text" class="input-field" id="editLocation" name="location" value="{{ employer.location }}"></div>
+                </div>
+                <button class="btn-create" style="width:100%; padding:1rem;" onclick="updateEmpProfile()">Update Profile</button>
+            </div>
+        </div>
+
+        <div id="tab-applicants" class="tab-content">
+            <div class="section-header">Pending Applicants</div>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Student</th><th>Gig</th><th>Date</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for app in applicants %}
+                        <tr>
+                            <td><a href="javascript:void(0)" onclick="viewStudent('{{ app.student.id }}')" style="color:var(--primary);">{{ app.student.full_name }}</a></td>
+                            <td>{{ app.gig.title }}</td>
+                            <td>{{ app.applied_at|date:"M d" }}</td>
+                            <td>
+                                <button class="btn-action" style="background:var(--accent-green);" onclick="manageApp('{{ app.id }}', 'ACCEPT')">Accept</button>
+                                <button class="btn-action" style="background:var(--accent-red);" onclick="manageApp('{{ app.id }}', 'REJECT')">Reject</button>
+                            </td>
+                        </tr>
+                        {% empty %}<tr><td colspan="4" style="text-align:center; padding:3rem;">No applications.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="tab-hired" class="tab-content">
+            <div class="section-header">Hired Students</div>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Student</th><th>Gig</th><th>Date</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for app in hired %}
+                        <tr>
+                            <td><a href="javascript:void(0)" onclick="viewStudent('{{ app.student.id }}')" style="color:var(--primary);">{{ app.student.full_name }}</a></td>
+                            <td>{{ app.gig.title }}</td>
+                            <td>{{ app.updated_at|date:"M d" }}</td>
+                            <td><button class="btn-action" style="background:var(--accent-red);" onclick="manageApp('{{ app.id }}', 'REJECT')">Remove</button></td>
+                        </tr>
+                        {% empty %}<tr><td colspan="4" style="text-align:center; padding:3rem;">No students hired yet.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="gigModal"><div class="modal-content">
+        <h2 class="modal-title">Post New Gig</h2>
+        <div style="margin-bottom:1rem;"><label class="form-label" for="gigTitle" style="display:block; font-size:0.8rem;">Title</label><input type="text" class="input-field" id="gigTitle" name="title"></div>
+        <div style="margin-bottom:1rem;"><label class="form-label" for="gigDesc" style="display:block; font-size:0.8rem;">Description</label><textarea class="textarea-field" id="gigDesc" name="description"></textarea></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+            <div><label class="form-label" for="gigDate" style="display:block; font-size:0.8rem;">Date</label><input type="date" class="input-field" id="gigDate" name="date"></div>
+            <div><label class="form-label" for="gigTime" style="display:block; font-size:0.8rem;">Time</label><input type="time" class="input-field" id="gigTime" name="time"></div>
+        </div>
+        <div style="margin-bottom:1rem;"><label class="form-label" for="gigEarnings" style="display:block; font-size:0.8rem;">Earnings</label><input type="text" class="input-field" id="gigEarnings" name="earnings"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+            <div><label class="form-label" for="gigImage" style="display:block; font-size:0.8rem;">Gig Image <span style="font-size:0.7rem; color:var(--text-muted);">(Camera/Storage)</span></label><input type="file" class="input-field" id="gigImage" name="image" accept="image/*"></div>
+            <div>
+                <label class="form-label" for="gigStatus" style="display:block; font-size:0.8rem;">Initial Status</label>
+                <select class="input-field" id="gigStatus" name="status">
+                    <option value="ACTIVE" selected>Active (Visible Now)</option>
+                    <option value="DRAFT">Draft (Hidden)</option>
+                </select>
+            </div>
+        </div>
+        <button class="btn-create" style="width:100%;" onclick="submitGig()">Post Gig</button>
+        <button class="close-modal" onclick="closeGigModal()">Cancel</button>
+    </div></div>
+
+    <div class="modal" id="editGigModal"><div class="modal-content">
+        <h2 class="modal-title">Edit Gig</h2>
+        <input type="hidden" id="editGigId" name="gig_id">
+        <div style="margin-bottom:1rem;"><label class="form-label" for="editGigTitle" style="display:block; font-size:0.8rem;">Title</label><input type="text" class="input-field" id="editGigTitle" name="title"></div>
+        <div style="margin-bottom:1rem;"><label class="form-label" for="editGigDesc" style="display:block; font-size:0.8rem;">Description</label><textarea class="textarea-field" id="editGigDesc" name="description"></textarea></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+            <div><label class="form-label" for="editGigDate" style="display:block; font-size:0.8rem;">Date</label><input type="date" class="input-field" id="editGigDate" name="date"></div>
+            <div><label class="form-label" for="editGigTime" style="display:block; font-size:0.8rem;">Time</label><input type="time" class="input-field" id="editGigTime" name="time"></div>
+        </div>
+        <div style="margin-bottom:1rem;"><label class="form-label" for="editGigEarnings" style="display:block; font-size:0.8rem;">Earnings</label><input type="text" class="input-field" id="editGigEarnings" name="earnings"></div>
+        <div id="editGigPreview" style="margin-bottom: 1rem; text-align: center; display: none;">
+            <img src="" style="max-width: 100%; border-radius: 8px; max-height: 150px; border: 1px solid var(--border-light);">
+        </div>
+        <div style="margin-bottom:1rem;"><label class="form-label" for="editGigImage" style="display:block; font-size:0.8rem;">Gig Image <span style="font-size:0.7rem; color:var(--text-muted);">(Leave empty to keep current)</span></label><input type="file" class="input-field" id="editGigImage" name="image" accept="image/*"></div>
+        <div style="margin-bottom:1rem;"><label class="form-label" for="editGigStatus" style="display:block; font-size:0.8rem;">Status</label><select class="input-field" id="editGigStatus" name="status"><option value="ACTIVE">Active</option><option value="CLOSED">Closed</option><option value="DRAFT">Draft</option></select></div>
+        <button class="btn-create" style="width:100%;" onclick="submitEditGig()">Update</button>
+        <button class="close-modal" onclick="closeEditModal()">Cancel</button>
+    </div></div>
+
+    <div class="modal" id="studentModal"><div class="modal-content">
+        <h2 class="modal-title" id="sName">Student</h2>
+        <div id="sBody"></div>
+        <button class="close-modal" onclick="closeStudentModal()">Close</button>
+    </div></div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'core/js/employer.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,200 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Master Admin Dashboard | Beer Money{% endblock %}
+
+{% block head_extra %}
+    <link rel="stylesheet" href="{% static 'core/css/admin.css' %}">
+{% endblock %}
+
+{% block body_class %}admin-bg{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <header class="admin-header">
+            <h1 class="title-admin">Master Admin Dashboard</h1>
+            <a href="/logout/" class="logout-btn">Log Out</a>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat-item active-blue selected" onclick="switchTab('employers', this)">
+                Employers <span class="stat-badge">{{ total_employers }}</span>
+            </div>
+            <div class="stat-item active-purple" onclick="switchTab('admins', this)">
+                Admins <span class="stat-badge">{{ total_admins }}</span>
+            </div>
+            <div class="stat-item active-green" onclick="switchTab('gigs', this)">
+                Gigs <span class="stat-badge">{{ total_gigs }}</span>
+            </div>
+            <div class="stat-item active-orange" onclick="switchTab('students', this)">
+                Students <span class="stat-badge">{{ total_students }}</span>
+            </div>
+            <div class="stat-item active-red" onclick="switchTab('logs', this)">
+                Admin Logs
+            </div>
+        </div>
+
+        <!-- EMPLOYERS TAB -->
+        <div id="tab-employers" class="tab-content active">
+            <div class="section-header">
+                <div class="section-title">Employers List</div>
+                <button class="btn-create" onclick="openStaffModal()">+ Add Staff</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Email</th><th>Role</th><th>Added On</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for staff in staff_members %}
+                        {% if staff.role == 'EMPLOYER' %}
+                        <tr>
+                            <td style="font-weight: 600;">{{ staff.email }}</td>
+                            <td><span class="platform-badge" style="background: var(--accent-blue);">Employer</span></td>
+                            <td>{{ staff.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <button class="btn-freeze {% if staff.is_frozen %}frozen{% endif %}" id="freezeBtn-staff-{{ staff.id }}" onclick="toggleFreeze('{{ staff.email|escapejs }}', 'freezeBtn-staff-{{ staff.id }}')">
+                                    {% if staff.is_frozen %}Unfreeze{% else %}Freeze{% endif %}
+                                </button>
+                                <button class="btn-delete" onclick="deleteStaff('{{ staff.email|escapejs }}')">Delete</button>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% empty %}<tr><td colspan="4" style="text-align:center; padding:3rem;">No employers.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ADMINS TAB -->
+        <div id="tab-admins" class="tab-content">
+            <div class="section-header">
+                <div class="section-title">Admins List</div>
+                <button class="btn-create" onclick="openStaffModal()">+ Add Staff</button>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Email</th><th>Role</th><th>Added On</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for staff in staff_members %}
+                        {% if staff.role == 'ADMIN' %}
+                        <tr>
+                            <td style="font-weight: 600;">{{ staff.email }}</td>
+                            <td><span class="platform-badge" style="background: var(--accent-orange);">Admin</span></td>
+                            <td>{{ staff.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                {% if staff.email|lower in master_admin_emails %}
+                                    <button class="btn-freeze frozen" disabled>Master</button>
+                                    <button class="btn-delete" disabled>Delete</button>
+                                {% else %}
+                                    <button class="btn-freeze {% if staff.is_frozen %}frozen{% endif %}" id="freezeBtn-staff-{{ staff.id }}" onclick="toggleFreeze('{{ staff.email|escapejs }}', 'freezeBtn-staff-{{ staff.id }}')">
+                                        {% if staff.is_frozen %}Unfreeze{% else %}Freeze{% endif %}
+                                    </button>
+                                    <button class="btn-delete" onclick="deleteStaff('{{ staff.email|escapejs }}')">Delete</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% empty %}<tr><td colspan="4" style="text-align:center; padding:3rem;">No extra admins.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- GIGS TAB -->
+        <div id="tab-gigs" class="tab-content">
+            <div class="section-header"><div class="section-title">Gigs List</div></div>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Gig Title</th><th>Timing</th><th>Employer</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for gig in gigs %}
+                        <tr id="gig-row-{{ gig.id }}">
+                            <td style="font-weight:600;">{{ gig.title }}</td>
+                            <td>{{ gig.date|date:"M d" }}<br><small>{{ gig.time|time:"h:i A" }}</small></td>
+                            <td>{{ gig.employer.company_name }}</td>
+                            <td><span class="status-badge {% if gig.status == 'ACTIVE' %}status-active{% else %}status-closed{% endif %}">{{ gig.get_status_display }}</span></td>
+                            <td>
+                                <button class="btn-details" onclick="viewGig('{{ gig.id }}')">View</button>
+                                <button class="btn-delete" onclick="deleteGig('{{ gig.id }}', '{{ gig.title|escapejs }}')">Delete</button>
+                            </td>
+                        </tr>
+                        {% empty %}<tr><td colspan="5" style="text-align:center; padding:3rem;">No gigs.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- STUDENTS TAB -->
+        <div id="tab-students" class="tab-content">
+            <div class="section-header"><div class="section-title">Students List</div></div>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Name</th><th>Email</th><th>Skills</th><th>Details</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr id="row-{{ student.id }}">
+                            <td style="font-weight:600;">{{ student.full_name }}</td>
+                            <td>{{ student.email }}</td>
+                            <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ student.skills|default:"--" }}</td>
+                            <td><button class="btn-details" onclick="viewDetails('{{ student.id }}')">Details</button></td>
+                            <td>
+                                <button class="btn-freeze {% if student.email in frozen_emails %}frozen{% endif %}" id="freezeBtn-student-{{ student.id }}" onclick="toggleFreeze('{{ student.email|escapejs }}', 'freezeBtn-student-{{ student.id }}')">
+                                    {% if student.email in frozen_emails %}Unfreeze{% else %}Freeze{% endif %}
+                                </button>
+                                <button class="btn-ban {% if student.is_banned %}banned{% endif %}" id="banBtn-{{ student.id }}" onclick="toggleBan('{{ student.id }}')">
+                                    {% if student.is_banned %}Unban{% else %}Ban{% endif %}
+                                </button>
+                                <button class="btn-delete" onclick="deleteStudent('{{ student.id }}', '{{ student.full_name|escapejs }}')">Del</button>
+                            </td>
+                        </tr>
+                        {% empty %}<tr><td colspan="5" style="text-align:center; padding:3rem;">No students.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- LOGS TAB -->
+        <div id="tab-logs" class="tab-content">
+            <div class="section-header"><div class="section-title">Admin Action Logs</div></div>
+            <div class="table-container">
+                <table>
+                    <thead><tr><th>Timestamp</th><th>Admin</th><th>Action</th><th>Target</th><th>Details</th></tr></thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td><small>{{ log.timestamp|date:"d M Y, h:i A" }}</small></td>
+                            <td style="font-weight:600;">{{ log.admin_email }}</td>
+                            <td><span class="platform-badge" style="background: #666;">{{ log.action }}</span></td>
+                            <td>{{ log.target }}</td>
+                            <td><small>{{ log.details }}</small></td>
+                        </tr>
+                        {% empty %}<tr><td colspan="5" style="text-align:center; padding:3rem;">No logs recorded yet.</td></tr>{% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="detailsModal"><div class="modal-content">
+        <h2 class="modal-title" id="modalName">Details</h2>
+        <div id="modalBody"></div>
+        <button class="btn-create" style="margin-top:1rem; width:100%;" onclick="closeModal()">Close</button>
+    </div></div>
+
+    <div class="modal" id="staffModal"><div class="modal-content">
+        <h2 class="modal-title">Add Staff</h2>
+        <label class="form-label" for="staffEmail">Email</label>
+        <input type="email" id="staffEmail" name="email" class="input-field" placeholder="Email">
+        <label class="form-label" for="staffRole">Role</label>
+        <select id="staffRole" name="role" class="input-field">
+            <option value="EMPLOYER">Employer</option>
+            <option value="ADMIN">Admin</option>
+        </select>
+        <button class="btn-create" style="width:100%;" onclick="addStaff()">Add Member</button>
+        <button class="btn-details" style="width:100%; margin-top:1rem;" onclick="closeStaffModal()">Cancel</button>
+    </div></div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'core/js/admin.js' %}"></script>
+{% endblock %}

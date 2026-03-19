@@ -1,0 +1,300 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Home | Beer Money{% endblock %}
+
+{% block head_extra %}
+    <link rel="stylesheet" href="{% static 'core/css/home.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/student.css' %}">
+{% endblock %}
+
+{% block content %}
+    <header>
+        <a href="/" class="logo">Beer Money</a>
+        <div class="profile-wrapper">
+            {% if is_registered and profile %}
+            <div style="display:flex; flex-direction:column; align-items:flex-end; justify-content:center; line-height:1.05; text-align:right;">
+                <div style="font-size:1rem; color:var(--text-muted); font-weight:700; letter-spacing:0.02em;">Welcome</div>
+                <div style="font-size:1.2rem; color:var(--primary); font-weight:900; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ profile.full_name }}</div>
+            </div>
+            {% endif %}
+            <button class="profile-btn" id="profileBtn" title="Profile" style="padding: 0; overflow: hidden; border: 2px solid var(--primary);">
+                {{ email|make_list|first|upper }}
+            </button>
+            <div class="profile-dropdown" id="profileDropdown">
+                <div class="dropdown-header">
+                    <div class="name">{% if profile %}{{ profile.full_name }}{% else %}User{% endif %}</div>
+                    <div class="email">{{ email }}</div>
+                </div>
+                <a href="javascript:void(0)" onclick="openProfileModal()" class="dropdown-item">
+                    <span class="dropdown-icon">[P]</span> Profile Details
+                </a>
+                <a href="/dashboard/" class="dropdown-item">
+                    <span class="dropdown-icon">[D]</span> Dashboard
+                </a>
+                <a href="/logout/" class="dropdown-item logout">
+                    <span class="dropdown-icon">[X]</span> Log Out
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-content">
+        {% if is_registered %}
+        <section class="welcome-section">
+            <div class="stats-row" style="margin-top: 2rem;">
+                <div class="stat-card">
+                    <div class="stat-label">Pending</div>
+                    <div class="stat-value" style="color: var(--accent-orange);">{{ stats.pending }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Accepted</div>
+                    <div class="stat-value" style="color: var(--accent-green);">{{ stats.accepted }}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Rejected</div>
+                    <div class="stat-value" style="color: var(--accent-red);">{{ stats.rejected }}</div>
+                </div>
+            </div>
+
+            <div class="student-dashboard-tabs">
+                <button class="tab-link active" onclick="switchStudentTab('gigs', this)">Find Gigs</button>
+                <button class="tab-link" onclick="switchStudentTab('applications', this)">My Applications</button>
+                <button class="tab-link" onclick="switchStudentTab('hired', this)">Hired</button>
+                <button class="tab-link" onclick="switchStudentTab('profile', this)">My Profile</button>
+            </div>
+
+            <!-- Find Gigs Tab -->
+            <div class="tab-panel active" id="tab-gigs">
+                <h2 style="font-family: 'Syne'; color: var(--primary); margin-bottom: 2rem; font-size: 2rem; text-align: center;">Available Gigs</h2>
+                <div class="gigs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+                    {% for gig in gigs %}
+                    <div class="gig-card">
+                        {% if gig.image %}
+                        <div style="width: 100%; height: 160px; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; border: 1px solid var(--glass-border);">
+                            <img src="{{ gig.image.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                        </div>
+                        {% endif %}
+                        <div style="flex: 1;">
+                            <h3 style="color: var(--primary); margin-bottom: 0.8rem; font-family: 'Syne';">{{ gig.title }}</h3>
+                            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.4;">{{ gig.description|truncatewords:25 }}</p>
+                            
+                            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="flex: 1; background: rgba(255,255,255,0.03); padding: 0.5rem; border-radius: 10px; border: 1px solid var(--glass-border);">
+                                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Gig Timing</div>
+                                    <div style="font-size: 0.85rem; color: var(--primary); font-weight: 600;">
+                                        {% if gig.date %}{{ gig.date|date:"M d" }}{% endif %}
+                                        {% if gig.time %}| {{ gig.time|time:"h:i A" }}{% endif %}
+                                    </div>
+                                </div>
+                                <div style="flex: 1; background: rgba(255,255,255,0.03); padding: 0.5rem; border-radius: 10px; border: 1px solid var(--glass-border);">
+                                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Pay</div>
+                                    <div style="font-size: 0.85rem; color: #fbbf24; font-weight: 600;">{{ gig.earnings }}</div>
+                                </div>
+                            </div>
+                            <div style="margin-bottom: 1.5rem;">
+                                <button onclick="viewEmployerDetails('{{ gig.employer.id }}')" style="background: transparent; border: 1px solid var(--glass-border); color: var(--text-muted); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; cursor: pointer; width: 100%; text-align: left; display: flex; align-items: center; gap: 0.5rem;">
+                                    <span style="font-size: 0.85rem;">[E]</span>
+                                    <span>{{ gig.employer.company_name }}</span>
+                                    <span style="flex: 1; text-align: right; color: var(--primary);">View Profile -&gt;</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid var(--glass-border);">
+                            <div style="display: flex; flex-direction: column;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Posted On</span>
+                                <span style="font-size: 0.85rem; color: var(--text);">{{ gig.created_at|date:"M d, Y" }}</span>
+                            </div>
+                           {% if gig.id in applied_gig_ids %}
+                           <button disabled style="background: rgba(255,255,255,0.05); color: var(--text-muted); padding: 0.6rem 1.2rem; border-radius: 100px; border: 1px solid var(--glass-border); font-weight: 700; font-size: 0.85rem;">Applied</button>
+                           {% else %}
+                           <button onclick="applyToGig('{{ gig.id }}', this)" style="background: var(--primary); color: var(--bg); padding: 0.6rem 1.2rem; border-radius: 100px; border: none; font-weight: 800; cursor: pointer; font-size: 0.85rem; transition: all 0.2s;">Apply Now</button>
+                           {% endif %}
+                       </div>
+                    </div>
+                    {% empty %}
+                    <div style="grid-column: 1/-1; text-align: center; padding: 4rem; background: var(--glass); border-radius: 24px; border: 1px dashed var(--glass-border);">
+                        <p style="color: var(--text-muted); font-size: 1.1rem;">No active gigs available right now.<br>Check back later for new opportunities!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- My Applications Tab -->
+            <div class="tab-panel" id="tab-applications">
+                <h2 style="font-family: 'Syne'; color: var(--primary); margin-bottom: 2rem; font-size: 2rem; text-align: center;">Applications Tracking</h2>
+                <div class="applications-list" style="max-width: 800px; margin: 0 auto;">
+                    {% for app in applications %}
+                    <div class="app-card">
+                        <div style="width: 60px; height: 60px; border-radius: 12px; overflow: hidden; border: 1px solid var(--glass-border);">
+                            {% if app.gig.image %}
+                            <img src="{{ app.gig.image.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); color: var(--primary); font-weight: 800;">
+                                {{ app.gig.title|slice:":1"|upper }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="app-info">
+                            <div class="app-title">{{ app.gig.title }}</div>
+                            <div class="app-meta">
+                                <span>Company: {{ app.gig.employer.company_name }}</span>
+                                <span>Pay: {{ app.gig.earnings }}</span>
+                            </div>
+                            <div class="app-date">Applied on {{ app.applied_at|date:"M d, Y" }}</div>
+                        </div>
+                        <div class="app-status status-{{ app.status }}">{{ app.get_status_display }}</div>
+                    </div>
+                    {% empty %}
+                    <div style="text-align: center; padding: 4rem; background: var(--glass); border-radius: 24px; border: 1px dashed var(--glass-border);">
+                        <p style="color: var(--text-muted); font-size: 1.1rem;">You haven't applied for any gigs yet.<br>Go to "Find Gigs" to get started!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Hired Tab -->
+            <div class="tab-panel" id="tab-hired">
+                <h2 style="font-family: 'Syne'; color: var(--accent-green); margin-bottom: 2rem; font-size: 2rem; text-align: center;">My Hired Gigs</h2>
+                <div class="applications-list" style="max-width: 800px; margin: 0 auto;">
+                    {% for app in hired_applications %}
+                    <div class="app-card" style="border-left: 4px solid var(--accent-green);">
+                        <div style="width: 60px; height: 60px; border-radius: 12px; overflow: hidden; border: 1px solid var(--glass-border);">
+                            {% if app.gig.image %}
+                            <img src="{{ app.gig.image.url }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); color: var(--primary); font-weight: 800;">
+                                {{ app.gig.title|slice:":1"|upper }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="app-info">
+                            <div class="app-title" style="color: var(--accent-green);">{{ app.gig.title }}</div>
+                            <div class="app-meta">
+                                <span>Company: {{ app.gig.employer.company_name }}</span>
+                                <span>Pay: {{ app.gig.earnings }}</span>
+                            </div>
+                            <div style="margin-top: 0.8rem; background: rgba(34, 197, 94, 0.1); padding: 0.8rem; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.2);">
+                                <div style="font-size: 0.75rem; color: var(--accent-green); text-transform: uppercase; font-weight: 700; margin-bottom: 0.3rem;">Employer Contact Info</div>
+                                <div style="font-size: 0.9rem; color: var(--text);">
+                                    Phone: <strong>{{ app.gig.employer.phone }}</strong><br>
+                                    Email: <strong>{{ app.gig.employer.email }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="app-status status-ACCEPTED" style="background: var(--accent-green); color: white;">HIRED</div>
+                    </div>
+                    {% empty %}
+                    <div style="text-align: center; padding: 4rem; background: var(--glass); border-radius: 24px; border: 1px dashed var(--glass-border);">
+                        <p style="color: var(--text-muted); font-size: 1.1rem;">No hired gigs yet.<br>Once an employer accepts you, details will appear here.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Profile Tab -->
+            <div class="tab-panel" id="tab-profile">
+                <h2 style="font-family: 'Syne'; color: var(--primary); margin-bottom: 2rem; font-size: 2rem; text-align: center;">My Profile</h2>
+                <div class="profile-card" style="background: var(--surface); padding: 2.5rem; border-radius: 24px; border: 1px solid var(--glass-border); max-width: 600px; margin: 0 auto; text-align: center;">
+                    <div style="width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--primary); margin: 0 auto 1.5rem; overflow: hidden; background: rgba(255,255,255,0.03); padding: 3px;">
+                        <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 800; color: var(--primary); font-family: 'Syne'; border-radius: 50%;">
+                            {{ profile.full_name|slice:":1"|upper }}
+                        </div>
+                    </div>
+                    <h3 style="font-family: 'Syne'; font-size: 1.8rem; color: var(--text); margin-bottom: 0.5rem;">{{ profile.full_name }}</h3>
+                    <p style="color: var(--primary); font-weight: 600; margin-bottom: 1.5rem;">{{ profile.college }}</p>
+                    
+                    <div style="display: grid; gap: 1rem; text-align: left; background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem;">
+                        <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Email</span><span>{{ email }}</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Mobile</span><span>{{ profile.mobile }}</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Gender</span><span style="text-transform: capitalize;">{{ profile.gender }}</span></div>
+                        <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Skills</span><span>{{ profile.skills }}</span></div>
+                    </div>
+                    
+                    <button onclick="openProfileModal()" class="btn-register" style="width: 100%; max-width: none;">Edit Full Profile</button>
+                </div>
+            </div>
+        </section>
+        {% else %}
+        <h1 class="reg-title">Register Now</h1>
+        <p class="reg-subtitle">Create your profile to get started and increase your chances of getting selected!</p>
+
+        <div class="reg-card">
+            <div class="form-row">
+                <div class="form-group"><label class="form-label" for="regName">Name</label><input type="text" class="input-field" id="regName" name="full_name" placeholder="Full Name"></div>
+                <div class="form-group"><label class="form-label" for="regMobile">Mobile</label><input type="tel" class="input-field" id="regMobile" name="mobile" placeholder="Mobile Number"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label class="form-label" for="regEmail">Email</label><input type="email" class="input-field" id="regEmail" name="email" value="{{ email }}" disabled style="opacity:0.6;"></div>
+                <div class="form-group">
+                    <label class="form-label" for="regGender">Gender</label>
+                    <select class="select-field" id="regGender" name="gender">
+                        <option value="" disabled selected>Select...</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label class="form-label" for="regDob">DOB</label><input type="date" class="input-field" id="regDob" name="dob"></div>
+                <div class="form-group"><label class="form-label" for="regCollege">College</label><input type="text" class="input-field" id="regCollege" name="college" placeholder="Your College / University"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group full"><label class="form-label" for="regAbout">About <span class="char-count" id="aboutCount">0 / 500</span></label><textarea class="textarea-field" id="regAbout" name="about" maxlength="500" placeholder="Tell us about yourself..."></textarea></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group full"><label class="form-label" for="regSkills">Skills <span class="hint">Separate with commas</span></label><input type="text" class="input-field" id="regSkills" name="skills" placeholder="e.g. Dancing, Singing, Guitar"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group full"><label class="form-label" for="regVideo">Intro Video URL</label><input type="url" class="input-field" id="regVideo" name="intro_video_url" placeholder="https://youtube.com/..."></div>
+            </div>
+            <button class="btn-register" id="registerBtn" onclick="submitRegistration()">Register</button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Modals -->
+    <div id="employerModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:2000; align-items:center; justify-content:center; padding:2rem;">
+        <div style="background:var(--surface); border:1px solid var(--glass-border); border-radius:24px; padding:2.5rem; width:100%; max-width:500px; position:relative;">
+            <button onclick="document.getElementById('employerModal').style.display='none'" style="position:absolute; top:1.5rem; right:1.5rem; background:transparent; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">&times;</button>
+            <div id="empModalContent"></div>
+        </div>
+    </div>
+
+    <div id="profileModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:2000; align-items:center; justify-content:center; padding:2rem;">
+        <div style="background:var(--surface); border:1px solid var(--glass-border); border-radius:24px; padding:2.5rem; width:100%; max-width:650px; position:relative; max-height: 90vh; overflow-y: auto;">
+            <button onclick="closeProfileModal()" style="position:absolute; top:1.5rem; right:1.5rem; background:transparent; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">&times;</button>
+            <h2 style="font-family:'Syne'; color:var(--primary); font-size:2rem; margin-bottom:2rem; text-align:center;">Edit Profile</h2>
+            <div class="reg-card" style="background:transparent; border:none; padding:0; box-shadow:none;">
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label" for="editName">Name</label><input type="text" class="input-field" id="editName" name="full_name" value="{{ profile.full_name|default:'' }}"></div>
+                    <div class="form-group"><label class="form-label" for="editMobile">Mobile</label><input type="tel" class="input-field" id="editMobile" name="mobile" value="{{ profile.mobile|default:'' }}"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label" for="editEmail">Email</label><input type="email" class="input-field" id="editEmail" name="email" value="{{ email }}" disabled style="opacity:0.6;" autocomplete="off"></div>
+                    <div class="form-group">
+                        <label class="form-label" for="editGender">Gender</label>
+                        <select class="select-field" id="editGender" name="gender">
+                            <option value="male" {% if profile.gender == "male" %}selected{% endif %}>Male</option>
+                            <option value="female" {% if profile.gender == "female" %}selected{% endif %}>Female</option>
+                            <option value="other" {% if profile.gender == "other" %}selected{% endif %}>Other</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label" for="editDob">DOB</label><input type="date" class="input-field" id="editDob" name="dob" value="{{ profile.dob|date:'Y-m-d' }}"></div>
+                    <div class="form-group"><label class="form-label" for="editCollege">College</label><input type="text" class="input-field" id="editCollege" name="college" value="{{ profile.college|default:'' }}"></div>
+                </div>
+                <div class="form-row"><div class="form-group full"><label class="form-label" for="editAbout">About</label><textarea class="textarea-field" id="editAbout" name="about" maxlength="500">{{ profile.about|default:'' }}</textarea></div></div>
+                <div class="form-row"><div class="form-group full"><label class="form-label" for="editSkills">Skills</label><input type="text" class="input-field" id="editSkills" name="skills" value="{{ profile.skills|default:'' }}"></div></div>
+                <div class="form-row"><div class="form-group full"><label class="form-label" for="editVideo">Intro Video URL</label><input type="url" class="input-field" id="editVideo" name="intro_video_url" value="{{ profile.intro_video_url|default:'' }}"></div></div>
+                <button class="btn-register" id="updateProfileBtn" onclick="updateStudentProfile()" style="width:100%; max-width:none;">Save Profile</button>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'core/js/home.js' %}"></script>
+{% endblock %}
