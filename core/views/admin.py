@@ -145,6 +145,7 @@ def admin_get_student(request):
             "intro_video_url": profile.intro_video_url or "",
             "profile_picture_url": profile.profile_picture_url or "",
             "is_banned": profile.is_banned,
+            "registration_platform": profile.registration_platform,
             "registered_at": profile.registered_at.strftime("%d %b %Y, %I:%M %p"),
         }
         return JsonResponse({"success": True, "data": data})

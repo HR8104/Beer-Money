@@ -1,4 +1,6 @@
 from django import forms
+from datetime import datetime
+from django.utils import timezone
 from .models import UserProfile, EmployerProfile, Gig
 
 class StudentProfileForm(forms.ModelForm):
@@ -39,3 +41,18 @@ class GigForm(forms.ModelForm):
         if len(title) < 5:
             raise forms.ValidationError("Title is too short.")
         return title
+
+    def clean(self):
+        cleaned_data = super().clean()
+        date_val = cleaned_data.get("date")
+        time_val = cleaned_data.get("time")
+
+        # If both fields are provided, enforce future timing.
+        if date_val and time_val:
+            gig_dt = timezone.make_aware(
+                datetime.combine(date_val, time_val),
+                timezone.get_current_timezone(),
+            )
+            if gig_dt <= timezone.localtime():
+                raise forms.ValidationError("Gig date/time must be in the future.")
+        return cleaned_data

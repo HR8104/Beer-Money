@@ -5,13 +5,14 @@ from django.shortcuts import render
 
 from ..decorators import student_only
 from ..models import Application, Gig, UserProfile
-from ..utils import get_session_email
+from ..utils import auto_close_expired_gigs, get_session_email, is_gig_expired
 
 
 @student_only
 def home_view(request):
     """Main feed for students; shows available gigs."""
     email = get_session_email(request)
+    auto_close_expired_gigs()
 
     try:
         profile = UserProfile.objects.get(email=email)
@@ -67,14 +68,23 @@ def apply_to_gig(request):
         student = UserProfile.objects.get(email=email)
         data = json.loads(request.body)
         gig_id = data.get("gig_id")
+        suitability_note = (data.get("suitability_note") or "").strip()
+
+        if len(suitability_note) < 10:
+            return JsonResponse(
+                {"success": False, "message": "Please write at least 10 characters about why you are suitable."}
+            )
 
         gig = Gig.objects.get(id=gig_id)
+        if gig.status == Gig.Status.ACTIVE and is_gig_expired(gig):
+            gig.status = Gig.Status.CLOSED
+            gig.save(update_fields=["status", "updated_at"])
         if gig.status != Gig.Status.ACTIVE:
             return JsonResponse(
                 {"success": False, "message": "This gig is no longer accepting applications."}
             )
 
-        Application.objects.create(student=student, gig=gig)
+        Application.objects.create(student=student, gig=gig, suitability_note=suitability_note)
         return JsonResponse({"success": True, "message": "Application submitted successfully!"})
     except UserProfile.DoesNotExist:
         return JsonResponse({"success": False, "message": "Please complete your profile first."})

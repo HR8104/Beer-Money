@@ -69,8 +69,12 @@
                             <td><span class="status-badge {% if gig.status == 'ACTIVE' %}status-active{% elif gig.status == 'DRAFT' %}status-draft{% else %}status-closed{% endif %}">{{ gig.get_status_display }}</span></td>
                             <td>{{ gig.applications.count }}</td>
                             <td>
-                                <button class="btn-action" onclick="openEditModal('{{ gig.id }}')">Edit</button>
-                                <button class="btn-action" style="background:var(--accent-orange);" onclick="manageGig('{{ gig.id }}', 'close')">Close</button>
+                                {% if gig.status == 'CLOSED' %}
+                                    <button class="btn-action" onclick="openReuseModal('{{ gig.id }}')">Reuse</button>
+                                {% else %}
+                                    <button class="btn-action" onclick="openEditModal('{{ gig.id }}')">Edit</button>
+                                    <button class="btn-action" style="background:var(--accent-orange);" onclick="manageGig('{{ gig.id }}', 'close')">Close</button>
+                                {% endif %}
                             </td>
                         </tr>
                         {% empty %}<tr><td colspan="6" style="text-align:center; padding:3rem;">No gigs posted yet.</td></tr>{% endfor %}
@@ -98,19 +102,20 @@
             <div class="section-header">Pending Applicants</div>
             <div class="table-container">
                 <table>
-                    <thead><tr><th>Student</th><th>Gig</th><th>Date</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Student</th><th>Gig</th><th>Brief</th><th>Date</th><th>Actions</th></tr></thead>
                     <tbody>
                         {% for app in applicants %}
                         <tr>
                             <td><a href="javascript:void(0)" onclick="viewStudent('{{ app.student.id }}')" style="color:var(--primary);">{{ app.student.full_name }}</a></td>
                             <td>{{ app.gig.title }}</td>
+                            <td style="max-width:280px; overflow:hidden; text-overflow:ellipsis;" title="{{ app.suitability_note }}">{{ app.suitability_note|default:"--"|truncatechars:80 }}</td>
                             <td>{{ app.applied_at|date:"M d" }}</td>
                             <td>
                                 <button class="btn-action" style="background:var(--accent-green);" onclick="manageApp('{{ app.id }}', 'ACCEPT')">Accept</button>
                                 <button class="btn-action" style="background:var(--accent-red);" onclick="manageApp('{{ app.id }}', 'REJECT')">Reject</button>
                             </td>
                         </tr>
-                        {% empty %}<tr><td colspan="4" style="text-align:center; padding:3rem;">No applications.</td></tr>{% endfor %}
+                        {% empty %}<tr><td colspan="5" style="text-align:center; padding:3rem;">No applications.</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -164,6 +169,7 @@
     <div class="modal" id="editGigModal"><div class="modal-content">
         <h2 class="modal-title">Edit Gig</h2>
         <input type="hidden" id="editGigId" name="gig_id">
+        <input type="hidden" id="editGigMode" name="mode" value="edit">
         <div style="margin-bottom:1rem;"><label class="form-label" for="editGigTitle" style="display:block; font-size:0.8rem;">Title</label><input type="text" class="input-field" id="editGigTitle" name="title"></div>
         <div style="margin-bottom:1rem;"><label class="form-label" for="editGigDesc" style="display:block; font-size:0.8rem;">Description</label><textarea class="textarea-field" id="editGigDesc" name="description"></textarea></div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">

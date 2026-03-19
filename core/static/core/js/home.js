@@ -88,13 +88,20 @@ async function submitRegistration() {
 }
 
 async function applyToGig(gigId, btn) {
+    const suitabilityNote = prompt('Write a brief on why you are suitable for this gig (minimum 10 characters):');
+    if (suitabilityNote === null) return;
+    if (!suitabilityNote.trim() || suitabilityNote.trim().length < 10) {
+        showToast('Please write at least 10 characters.', 'error');
+        return;
+    }
+
     const originalText = btn.textContent;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner" style="margin-right:0;"></span>';
     try {
         const res = await apiCall('/api/student/apply/', {
             method: 'POST',
-            body: JSON.stringify({ gig_id: gigId })
+            body: JSON.stringify({ gig_id: gigId, suitability_note: suitabilityNote.trim() })
         });
         const result = await res.json();
         if (result.success) {

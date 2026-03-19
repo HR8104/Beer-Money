@@ -2,6 +2,11 @@ from django.db import models
 
 
 class UserProfile(models.Model):
+    class RegistrationPlatform(models.TextChoices):
+        WEB = "web", "Web"
+        TELEGRAM = "telegram", "Telegram"
+        BOTH = "both", "Both"
+
     GENDER_CHOICES = [
         ('male', 'Male'),
         ('female', 'Female'),
@@ -19,10 +24,29 @@ class UserProfile(models.Model):
     intro_video_url = models.URLField(blank=True, null=True)
     profile_picture_url = models.URLField(blank=True, null=True)
     is_banned = models.BooleanField(default=False)
+    registration_platform = models.CharField(
+        max_length=20,
+        choices=RegistrationPlatform.choices,
+        default=RegistrationPlatform.WEB,
+    )
     registered_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.full_name} ({self.email})"
+
+    def mark_registered_from(self, source: str) -> None:
+        source = (source or "").strip().lower()
+        if source not in {
+            self.RegistrationPlatform.WEB,
+            self.RegistrationPlatform.TELEGRAM,
+        }:
+            return
+        if self.registration_platform == self.RegistrationPlatform.BOTH:
+            return
+        if self.registration_platform != source:
+            self.registration_platform = self.RegistrationPlatform.BOTH
+        else:
+            self.registration_platform = source
 
 
 class UserRole(models.Model):
@@ -82,6 +106,7 @@ class Application(models.Model):
 
     gig = models.ForeignKey(Gig, on_delete=models.CASCADE, related_name='applications')
     student = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='applications')
+    suitability_note = models.TextField(blank=True, default="")
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
     applied_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -98,3 +123,39 @@ class AdminLog(models.Model):
 
     def __str__(self):
         return f"{self.timestamp} - {self.admin_email}: {self.action} on {self.target}"
+
+
+class TelegramRegistration(models.Model):
+    telegram_user_id = models.BigIntegerField(unique=True)
+    telegram_chat_id = models.BigIntegerField()
+    telegram_username = models.CharField(max_length=150, blank=True, null=True)
+    telegram_first_name = models.CharField(max_length=150, blank=True, null=True)
+    telegram_last_name = models.CharField(max_length=150, blank=True, null=True)
+    student = models.OneToOneField(
+        UserProfile,
+        on_delete=models.CASCADE,
+        related_name="telegram_registration",
+    )
+    registered_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        username = self.telegram_username or f"id:{self.telegram_user_id}"
+        return f"{username} -> {self.student.email}"
+
+
+class TelegramEmailOTP(models.Model):
+    email = models.EmailField()
+    telegram_user_id = models.BigIntegerField()
+    otp_code = models.CharField(max_length=6)
+    expires_at = models.DateTimeField()
+    is_verified = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["email", "telegram_user_id"]),
+            models.Index(fields=["expires_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.email} ({self.telegram_user_id})"

@@ -128,12 +128,21 @@
             <div class="section-header"><div class="section-title">Students List</div></div>
             <div class="table-container">
                 <table>
-                    <thead><tr><th>Name</th><th>Email</th><th>Skills</th><th>Details</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Name</th><th>Email</th><th>Platform</th><th>Skills</th><th>Details</th><th>Actions</th></tr></thead>
                     <tbody>
                         {% for student in students %}
                         <tr id="row-{{ student.id }}">
                             <td style="font-weight:600;">{{ student.full_name }}</td>
                             <td>{{ student.email }}</td>
+                            <td>
+                                {% if student.registration_platform == 'both' %}
+                                    <span class="platform-badge" style="background: var(--accent-green);">Both</span>
+                                {% elif student.registration_platform == 'telegram' %}
+                                    <span class="platform-badge" style="background: var(--accent-blue);">Telegram</span>
+                                {% else %}
+                                    <span class="platform-badge" style="background: var(--accent-orange);">Web</span>
+                                {% endif %}
+                            </td>
                             <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis;">{{ student.skills|default:"--" }}</td>
                             <td><button class="btn-details" onclick="viewDetails('{{ student.id }}')">Details</button></td>
                             <td>
@@ -146,7 +155,7 @@
                                 <button class="btn-delete" onclick="deleteStudent('{{ student.id }}', '{{ student.full_name|escapejs }}')">Del</button>
                             </td>
                         </tr>
-                        {% empty %}<tr><td colspan="5" style="text-align:center; padding:3rem;">No students.</td></tr>{% endfor %}
+                        {% empty %}<tr><td colspan="6" style="text-align:center; padding:3rem;">No students.</td></tr>{% endfor %}
                     </tbody>
                 </table>
             </div>

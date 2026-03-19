@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from django.http import JsonResponse
 from django.core.mail import send_mail
 from django.conf import settings
+from django.utils import timezone
 from ..models import UserProfile, UserRole, EmployerProfile
 from ..forms import StudentProfileForm
 from ..utils import get_admin_emails, get_session_email
@@ -34,6 +35,7 @@ def register_user(request):
         if form.is_valid():
             profile = form.save(commit=False)
             profile.email = email
+            profile.mark_registered_from(UserProfile.RegistrationPlatform.WEB)
             profile.save()
             return JsonResponse({'success': True, 'message': 'Profile updated successfully!'})
         else:
@@ -61,7 +63,7 @@ def send_otp(request):
     # Store OTP + expiry in session
     request.session['otp'] = otp
     request.session['otp_email'] = email
-    request.session['otp_created'] = datetime.now().isoformat()
+    request.session['otp_created'] = timezone.now().isoformat()
 
     # Send email
     try:
@@ -104,7 +106,9 @@ def verify_otp(request):
 
     # Check expiry
     created_dt = datetime.fromisoformat(otp_created)
-    if datetime.now() - created_dt > timedelta(minutes=settings.OTP_EXPIRY_MINUTES):
+    if timezone.is_naive(created_dt):
+        created_dt = timezone.make_aware(created_dt, timezone.get_current_timezone())
+    if timezone.now() - created_dt > timedelta(minutes=settings.OTP_EXPIRY_MINUTES):
         # Clear expired OTP
         _clear_otp_session(request)
         return JsonResponse({'success': False, 'message': 'OTP has expired. Please request a new one.'})
@@ -155,7 +159,7 @@ def resend_otp(request):
     # Generate new OTP
     otp = str(random.randint(100000, 999999))
     request.session['otp'] = otp
-    request.session['otp_created'] = datetime.now().isoformat()
+    request.session['otp_created'] = timezone.now().isoformat()
 
     try:
         send_mail(
@@ -198,7 +202,7 @@ def update_profile(request):
                 employer.profile_picture_url = profile_picture_url
                 employer.save()
                 return JsonResponse({'success': True, 'message': 'Employer profile updated!'})
-            except:
+            except EmployerProfile.DoesNotExist:
                 return JsonResponse({'success': False, 'message': 'Profile not found.'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})

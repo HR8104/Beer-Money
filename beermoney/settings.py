@@ -159,3 +159,8 @@ OTP_EXPIRY_MINUTES = 5
 
 # Admin email list — these users get access to the Master Admin Dashboard
 ADMIN_EMAILS = os.getenv("ADMIN_EMAILS", "").split(",")
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_CHANNEL_ID = os.getenv("TELEGRAM_CHANNEL_ID", "").strip()
+TELEGRAM_BOT_USERNAME = os.getenv("TELEGRAM_BOT_USERNAME", "").strip().lstrip("@")

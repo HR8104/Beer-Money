@@ -178,6 +178,7 @@ async function viewDetails(id) {
             body.innerHTML = `
                 <div class="detail-row"><div class="detail-label">Email</div><div>${p.email}</div></div>
                 <div class="detail-row"><div class="detail-label">Mobile</div><div>${p.mobile}</div></div>
+                <div class="detail-row"><div class="detail-label">Platform</div><div>${p.registration_platform || '--'}</div></div>
                 <div class="detail-row"><div class="detail-label">College</div><div>${p.college || '--'}</div></div>
                 <div class="detail-row"><div class="detail-label">Skills</div><div>${p.skills || '--'}</div></div>
                 <div class="detail-row"><div class="detail-label">About</div><div>${p.about || '--'}</div></div>

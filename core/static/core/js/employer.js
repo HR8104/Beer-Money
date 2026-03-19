@@ -6,7 +6,39 @@ document.addEventListener('DOMContentLoaded', () => {
         postGigBtn.removeAttribute('onclick');
         postGigBtn.addEventListener('click', openGigModal);
     }
+    setGigDateTimeConstraints('gigDate', 'gigTime');
+    setGigDateTimeConstraints('editGigDate', 'editGigTime');
 });
+
+function getNowLocalParts() {
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return {
+        date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+        time: `${pad(now.getHours())}:${pad(now.getMinutes())}`
+    };
+}
+
+function setGigDateTimeConstraints(dateInputId, timeInputId) {
+    const dateInput = document.getElementById(dateInputId);
+    const timeInput = document.getElementById(timeInputId);
+    if (!dateInput || !timeInput) return;
+
+    const nowParts = getNowLocalParts();
+    dateInput.min = nowParts.date;
+
+    const syncTimeMin = () => {
+        const parts = getNowLocalParts();
+        if (dateInput.value === parts.date) {
+            timeInput.min = parts.time;
+        } else {
+            timeInput.removeAttribute('min');
+        }
+    };
+
+    dateInput.addEventListener('change', syncTimeMin);
+    syncTimeMin();
+}
 
 function switchTab(tabId, btn) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
@@ -73,6 +105,9 @@ async function updateEmpProfile() {
 function openGigModal() {
     const modal = document.getElementById('gigModal');
     if (modal) {
+        const submitBtn = document.querySelector('#gigModal .btn-create');
+        if (submitBtn) submitBtn.textContent = 'Post Gig';
+        setGigDateTimeConstraints('gigDate', 'gigTime');
         modal.classList.add('active');
         modal.style.display = 'flex'; // Force display as fallback
     }
@@ -118,7 +153,7 @@ async function submitGig() {
         });
         const resData = await res.json();
         if(resData.success) {
-            showToast('Gig posted successfully!', 'success');
+            showToast(resData.message || 'Gig posted successfully!', 'success');
             setTimeout(() => window.location.reload(), 1000);
         } else {
             showToast(resData.message, 'error');
@@ -149,6 +184,10 @@ async function openEditModal(id) {
             document.getElementById('editGigTime').value = g.time;
             document.getElementById('editGigEarnings').value = g.earnings;
             document.getElementById('editGigStatus').value = g.status;
+            document.getElementById('editGigMode').value = 'edit';
+            const editBtn = document.querySelector('#editGigModal .btn-create');
+            if (editBtn) editBtn.textContent = 'Update';
+            setGigDateTimeConstraints('editGigDate', 'editGigTime');
             
             // Handle image preview
             const preview = document.getElementById('editGigPreview');
@@ -175,6 +214,16 @@ async function openEditModal(id) {
     }
 }
 
+async function openReuseModal(id) {
+    await openEditModal(id);
+    const statusField = document.getElementById('editGigStatus');
+    const editBtn = document.querySelector('#editGigModal .btn-create');
+    const modeField = document.getElementById('editGigMode');
+    if (statusField) statusField.value = 'ACTIVE';
+    if (modeField) modeField.value = 'reuse';
+    if (editBtn) editBtn.textContent = 'Reuse Gig';
+}
+
 function closeEditModal() {
     const modal = document.getElementById('editGigModal');
     if (modal) {
@@ -187,6 +236,7 @@ async function submitEditGig() {
     const btn = document.querySelector('#editGigModal .btn-create');
     const formData = new FormData();
     formData.append('gig_id', document.getElementById('editGigId').value);
+    formData.append('mode', document.getElementById('editGigMode').value || 'edit');
     formData.append('title', document.getElementById('editGigTitle').value.trim());
     formData.append('description', document.getElementById('editGigDesc').value.trim());
     formData.append('date', document.getElementById('editGigDate').value);
@@ -216,7 +266,7 @@ async function submitEditGig() {
         });
         const resData = await res.json();
         if(resData.success) {
-            showToast('Gig updated successfully!', 'success');
+            showToast(resData.message || 'Gig updated successfully!', 'success');
             setTimeout(() => window.location.reload(), 1000);
         } else {
             showToast(resData.message, 'error');
@@ -243,7 +293,7 @@ async function manageGig(id, action) {
         });
         const resData = await res.json();
         if(resData.success) {
-            showToast('Action completed!', 'success');
+            showToast(resData.message || 'Action completed!', 'success');
             setTimeout(() => window.location.reload(), 1000);
         } else {
             showToast(resData.message, 'error');

@@ -4,7 +4,14 @@ from django.http import JsonResponse
 from ..models import UserProfile, UserRole, EmployerProfile, Gig, Application
 from ..decorators import employer_only, staff_only
 from ..forms import GigForm, EmployerProfileForm
-from ..utils import get_session_email, log_admin_action
+from ..utils import (
+    auto_close_expired_gigs,
+    get_session_email,
+    is_gig_expired,
+    log_admin_action,
+    notify_selected_student_on_telegram,
+    post_gig_to_telegram_channel,
+)
 
 @employer_only
 def employer_dashboard_view(request):
@@ -15,6 +22,7 @@ def employer_dashboard_view(request):
     try:
         employer = EmployerProfile.objects.get(email=email)
         is_registered = True
+        auto_close_expired_gigs(employer=employer)
     except EmployerProfile.DoesNotExist:
         employer = None
         is_registered = False
@@ -64,7 +72,30 @@ def post_gig(request):
             gig.employer = employer
             gig.save()
             log_admin_action(request, 'POST_GIG', gig.title, f"Gig created by {employer.email}")
-            return JsonResponse({'success': True, 'message': 'Gig posted successfully!', 'id': gig.id})
+            channel_posted = False
+            channel_message = ""
+            if gig.status == Gig.Status.ACTIVE:
+                channel_posted, channel_message = post_gig_to_telegram_channel(gig)
+                if not channel_posted:
+                    log_admin_action(
+                        request,
+                        "TELEGRAM_POST_FAILED",
+                        gig.title,
+                        f"Channel post failed for gig_id={gig.id}: {channel_message}",
+                    )
+
+            response_message = 'Gig posted successfully!'
+            if gig.status == Gig.Status.ACTIVE and not channel_posted:
+                response_message += f" Channel post failed: {channel_message}"
+
+            return JsonResponse(
+                {
+                    'success': True,
+                    'message': response_message,
+                    'id': gig.id,
+                    'telegram_channel_posted': channel_posted,
+                }
+            )
         else:
             errors = form.errors.as_text()
             return JsonResponse({'success': False, 'message': f'Validation failed: {errors}'})
@@ -114,6 +145,11 @@ def get_gig_details(request):
             gig = Gig.objects.get(id=gig_id)
         else:
             gig = Gig.objects.get(id=gig_id, employer__email=email)
+
+        if gig.status == Gig.Status.ACTIVE and is_gig_expired(gig):
+            gig.status = Gig.Status.CLOSED
+            gig.save(update_fields=["status", "updated_at"])
+
         data = {
             'id': gig.id,
             'title': gig.title,
@@ -137,11 +173,15 @@ def update_gig(request):
     email = get_session_email(request)
     try:
         gig_id = request.POST.get('gig_id') or request.POST.get('id')
+        mode = (request.POST.get('mode') or 'edit').strip().lower()
         gig = Gig.objects.get(id=gig_id, employer__email=email)
 
         form = GigForm(request.POST, request.FILES, instance=gig)
         if form.is_valid():
-            form.save()
+            updated_gig = form.save(commit=False)
+            if mode == 'reuse':
+                updated_gig.status = Gig.Status.ACTIVE
+            updated_gig.save()
             return JsonResponse({'success': True, 'message': 'Gig updated successfully!'})
         else:
             return JsonResponse({'success': False, 'message': f'Validation failed: {form.errors.as_text()}'})
@@ -165,6 +205,14 @@ def manage_application(request):
         if action == 'ACCEPT':
             application.status = Application.Status.ACCEPTED
             log_admin_action(request, 'HIRE_STUDENT', application.student.email, f"Student hired for '{application.gig.title}'")
+            notified, notify_message = notify_selected_student_on_telegram(application)
+            if not notified:
+                log_admin_action(
+                    request,
+                    "TELEGRAM_NOTIFY_FAILED",
+                    application.student.email,
+                    f"Selection notification failed for app_id={application.id}: {notify_message}",
+                )
         elif action == 'REJECT':
             application.status = Application.Status.REJECTED
         
