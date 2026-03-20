@@ -51,7 +51,7 @@ def employer_dashboard_view(request):
             'total_gigs': total_gigs,
             'active_gigs': active_gigs_count,
             'total_apps': total_applications,
-            'hired_count': hired.count()
+            'hired_count': hired.count() if employer else 0
         }
     })
 
