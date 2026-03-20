@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import admin as admin_views
 from .views import auth, employer, main, student
+from .views import telegram as telegram_views
 
 urlpatterns = [
     path('', main.index, name='index'),
@@ -36,4 +37,8 @@ urlpatterns = [
     path('api/employer/details/', employer.get_employer_details, name='get_employer_details'),
     path('api/student/apply/', student.apply_to_gig, name='apply_to_gig'),
     path('api/update-profile/', auth.update_profile, name='update_profile'),
+
+    # Telegram Webhooks
+    path('telegram-webhook/', telegram_views.telegram_webhook, name='telegram_webhook'),
+    path('set-telegram-webhook/', telegram_views.set_webhook, name='set_telegram_webhook'),
 ]
