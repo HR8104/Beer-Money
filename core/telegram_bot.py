@@ -607,37 +607,34 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
-_application = None
-
 def get_application():
-    global _application
-    if _application is None:
-        token = settings.TELEGRAM_BOT_TOKEN
-        if not token:
-            raise ValueError("TELEGRAM_BOT_TOKEN is missing in settings")
-        _application = Application.builder().token(token).build()
-        conv = ConversationHandler(
-            entry_points=[CommandHandler("start", start)],
-            states={
-                APPLY_BRIEF: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_apply_brief)],
-                EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_email)],
-                EMAIL_OTP: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_email_otp)],
-                FULL_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_full_name)],
-                MOBILE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_mobile)],
-                GENDER: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_gender)],
-                DOB: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_dob)],
-                COLLEGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_college)],
-                ABOUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_about)],
-                SKILLS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_skills)],
-                INTRO_VIDEO_URL: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_intro_video_url)
-                ],
-                PROFILE_PICTURE_URL: [
-                    MessageHandler(filters.TEXT & ~filters.COMMAND, handle_profile_picture_url)
-                ],
-                CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirm)],
-            },
-            fallbacks=[CommandHandler("cancel", cancel)],
-        )
-        _application.add_handler(conv)
-    return _application
+    token = settings.TELEGRAM_BOT_TOKEN
+    if not token:
+        raise ValueError("TELEGRAM_BOT_TOKEN is missing in settings")
+    
+    app = Application.builder().token(token).build()
+    conv = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            APPLY_BRIEF: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_apply_brief)],
+            EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_email)],
+            EMAIL_OTP: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_email_otp)],
+            FULL_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_full_name)],
+            MOBILE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_mobile)],
+            GENDER: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_gender)],
+            DOB: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_dob)],
+            COLLEGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_college)],
+            ABOUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_about)],
+            SKILLS: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_skills)],
+            INTRO_VIDEO_URL: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_intro_video_url)
+            ],
+            PROFILE_PICTURE_URL: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_profile_picture_url)
+            ],
+            CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirm)],
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+    )
+    app.add_handler(conv)
+    return app

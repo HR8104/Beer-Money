@@ -9,17 +9,16 @@ from telegram import Update
 def telegram_webhook(request):
     if request.method == "POST":
         try:
-            ptb_app = get_application()
-            update = Update.de_json(json.loads(request.body.decode('utf-8')), ptb_app.bot)
+            payload = json.loads(request.body.decode('utf-8'))
             
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            if not ptb_app._initialized:
-                loop.run_until_complete(ptb_app.initialize())
-                
-            loop.run_until_complete(ptb_app.process_update(update))
-            loop.close()
+            async def run_update():
+                ptb_app = get_application()
+                # 'async with ptb_app' automatically starts/stops HTTPX client loops
+                async with ptb_app:
+                    update = Update.de_json(payload, ptb_app.bot)
+                    await ptb_app.process_update(update)
+
+            asyncio.run(run_update())
             
             return JsonResponse({"status": "ok"})
         except Exception as e:
@@ -28,16 +27,16 @@ def telegram_webhook(request):
 
 def set_webhook(request):
     host = request.get_host()
-    # Provide an option to force HTTPS if sitting behind a proxy (like PythonAnywhere)
+    # Provide an option to force HTTPS if sitting behind a proxy (like PythonAnywhere/Render)
     scheme = "https" if not request.is_secure() else request.scheme
     webhook_url = f"{scheme}://{host}/telegram-webhook/"
     
-    ptb_app = get_application()
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
-    success = loop.run_until_complete(ptb_app.bot.set_webhook(url=webhook_url))
-    loop.close()
+    async def run_setup():
+        ptb_app = get_application()
+        async with ptb_app:
+            return await ptb_app.bot.set_webhook(url=webhook_url)
+            
+    success = asyncio.run(run_setup())
     
     if success:
         return HttpResponse(f"Webhook set successfully to {webhook_url}")
