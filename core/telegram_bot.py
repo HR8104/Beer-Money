@@ -494,11 +494,8 @@ async def handle_college(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not update.message:
         return COLLEGE
     college = _normalize_text(update.message.text)
-    if len(college) < 2:
-        await update.message.reply_text("Please enter a valid college name.")
-        return COLLEGE
     context.user_data["college"] = college
-    await update.message.reply_text("Write a short about/bio (or type `skip`):")
+    await update.message.reply_text("Write a short about/bio (minimum 10 characters):")
     return ABOUT
 
 
@@ -506,7 +503,10 @@ async def handle_about(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     if not update.message:
         return ABOUT
     about = _normalize_text(update.message.text)
-    context.user_data["about"] = "" if about.lower() == "skip" else about
+    if len(about) < 10:
+        await update.message.reply_text("Please write at least 10 characters for your bio.")
+        return ABOUT
+    context.user_data["about"] = about
     await update.message.reply_text("Enter your skills (comma separated):")
     return SKILLS
 
