@@ -684,6 +684,29 @@ class DjangoPersistence(BasePersistence):
             self.conversations_cache[name] = {}
         self.conversations_cache[name][str(key)] = new_state
 
+    async def drop_chat_data(self, chat_id):
+        self._load()
+        self.chat_data_cache.pop(chat_id, None)
+
+    async def drop_user_data(self, user_id):
+        self._load()
+        self.user_data_cache.pop(user_id, None)
+
+    async def get_callback_data(self):
+        return None
+
+    async def refresh_bot_data(self, data):
+        pass
+
+    async def refresh_chat_data(self, chat_id, data):
+        pass
+
+    async def refresh_user_data(self, user_id, data):
+        pass
+
+    async def update_callback_data(self, data):
+        pass
+
     async def flush(self):
         if not self._loaded:
             return
