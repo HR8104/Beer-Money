@@ -234,11 +234,11 @@
 
         <div class="reg-card">
             <div class="form-row">
-                <div class="form-group"><label class="form-label" for="regName">Name</label><input type="text" class="input-field" id="regName" name="full_name" placeholder="Full Name"></div>
-                <div class="form-group"><label class="form-label" for="regMobile">Mobile</label><input type="tel" class="input-field" id="regMobile" name="mobile" placeholder="Mobile Number"></div>
+                <div class="form-group"><label class="form-label" for="regName">Name <span style="color:var(--accent-red);">*</span></label><input type="text" class="input-field" id="regName" name="full_name" placeholder="Full Name"></div>
+                <div class="form-group"><label class="form-label" for="regMobile">Mobile <span style="color:var(--accent-red);">*</span></label><input type="tel" class="input-field" id="regMobile" name="mobile" placeholder="Mobile Number (10 digits)"></div>
             </div>
             <div class="form-row">
-                <div class="form-group"><label class="form-label" for="regEmail">Email</label><input type="email" class="input-field" id="regEmail" name="email" value="{{ email }}" disabled style="opacity:0.6;"></div>
+                <div class="form-group"><label class="form-label" for="regEmail">Email <span style="color:var(--accent-red);">*</span></label><input type="email" class="input-field" id="regEmail" name="email" value="{{ email }}" disabled style="opacity:0.6;"></div>
                 <div class="form-group">
                     <label class="form-label" for="regGender">Gender</label>
                     <select class="select-field" id="regGender" name="gender">
@@ -254,7 +254,7 @@
                 <div class="form-group"><label class="form-label" for="regCollege">College</label><input type="text" class="input-field" id="regCollege" name="college" placeholder="Your College / University"></div>
             </div>
             <div class="form-row">
-                <div class="form-group full"><label class="form-label" for="regAbout">About <span class="char-count" id="aboutCount">0 / 500</span></label><textarea class="textarea-field" id="regAbout" name="about" maxlength="500" placeholder="Tell us about yourself..."></textarea></div>
+                <div class="form-group full"><label class="form-label" for="regAbout">About <span style="color:var(--accent-red);">*</span> <span class="char-count" id="aboutCount">0 / 500</span></label><textarea class="textarea-field" id="regAbout" name="about" maxlength="500" placeholder="Tell us about yourself..."></textarea></div>
             </div>
             <div class="form-row">
                 <div class="form-group full"><label class="form-label" for="regSkills">Skills <span class="hint">Separate with commas</span></label><input type="text" class="input-field" id="regSkills" name="skills" placeholder="e.g. Dancing, Singing, Guitar"></div>
@@ -281,8 +281,8 @@
             <h2 style="font-family:'Syne'; color:var(--primary); font-size:2rem; margin-bottom:2rem; text-align:center;">Edit Profile</h2>
             <div class="reg-card" style="background:transparent; border:none; padding:0; box-shadow:none;">
                 <div class="form-row">
-                    <div class="form-group"><label class="form-label" for="editName">Name</label><input type="text" class="input-field" id="editName" name="full_name" value="{{ profile.full_name|default:'' }}"></div>
-                    <div class="form-group"><label class="form-label" for="editMobile">Mobile</label><input type="tel" class="input-field" id="editMobile" name="mobile" value="{{ profile.mobile|default:'' }}"></div>
+                    <div class="form-group"><label class="form-label" for="editName">Name <span style="color:var(--accent-red);">*</span></label><input type="text" class="input-field" id="editName" name="full_name" value="{{ profile.full_name|default:'' }}"></div>
+                    <div class="form-group"><label class="form-label" for="editMobile">Mobile <span style="color:var(--accent-red);">*</span></label><input type="tel" class="input-field" id="editMobile" name="mobile" value="{{ profile.mobile|default:'' }}"></div>
                 </div>
                 <div class="form-row">
                     <div class="form-group"><label class="form-label" for="editEmail">Email</label><input type="email" class="input-field" id="editEmail" name="email" value="{{ email }}" disabled style="opacity:0.6;" autocomplete="off"></div>
@@ -299,7 +299,7 @@
                     <div class="form-group"><label class="form-label" for="editDob">DOB</label><input type="date" class="input-field" id="editDob" name="dob" value="{{ profile.dob|date:'Y-m-d' }}"></div>
                     <div class="form-group"><label class="form-label" for="editCollege">College</label><input type="text" class="input-field" id="editCollege" name="college" value="{{ profile.college|default:'' }}"></div>
                 </div>
-                <div class="form-row"><div class="form-group full"><label class="form-label" for="editAbout">About</label><textarea class="textarea-field" id="editAbout" name="about" maxlength="500">{{ profile.about|default:'' }}</textarea></div></div>
+                <div class="form-row"><div class="form-group full"><label class="form-label" for="editAbout">About <span style="color:var(--accent-red);">*</span></label><textarea class="textarea-field" id="editAbout" name="about" maxlength="500">{{ profile.about|default:'' }}</textarea></div></div>
                 <div class="form-row"><div class="form-group full"><label class="form-label" for="editSkills">Skills</label><input type="text" class="input-field" id="editSkills" name="skills" value="{{ profile.skills|default:'' }}"></div></div>
                 <div class="form-row"><div class="form-group full"><label class="form-label" for="editVideo">Intro Video URL</label><input type="url" class="input-field" id="editVideo" name="intro_video_url" value="{{ profile.intro_video_url|default:'' }}"></div></div>
                 <button class="btn-register" id="updateProfileBtn" onclick="updateStudentProfile()" style="width:100%; max-width:none;">Save Profile</button>

@@ -16,8 +16,11 @@ class StudentProfileForm(forms.ModelForm):
 
     def clean_mobile(self):
         mobile = self.cleaned_data.get('mobile')
-        if mobile and not mobile.isdigit():
-            raise forms.ValidationError("Mobile number should contain only digits.")
+        if mobile:
+            if not mobile.isdigit():
+                raise forms.ValidationError("Mobile number should contain only digits.")
+            if len(mobile) != 10:
+                raise forms.ValidationError("Mobile number must be exactly 10 digits.")
         return mobile
 
 class EmployerProfileForm(forms.ModelForm):
@@ -26,6 +29,15 @@ class EmployerProfileForm(forms.ModelForm):
         fields = [
             'full_name', 'phone', 'company_name', 'location', 'profile_picture_url'
         ]
+
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        if phone:
+            if not phone.isdigit():
+                raise forms.ValidationError("Phone number should contain only digits.")
+            if len(phone) != 10:
+                raise forms.ValidationError("Phone number must be exactly 10 digits.")
+        return phone
 
 class GigForm(forms.ModelForm):
     class Meta:

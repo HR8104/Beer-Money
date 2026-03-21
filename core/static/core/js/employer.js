@@ -64,6 +64,12 @@ async function saveEmpProfile() {
         return;
     }
 
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(data.phone)) {
+        showToast('Phone number must be 10 digits.', 'error');
+        return;
+    }
+
     try {
         const res = await apiCall('/api/register-employer/', {
             method:'POST',
@@ -88,6 +94,12 @@ async function updateEmpProfile() {
         company_name: document.getElementById('editCompany').value.trim(),
         location: document.getElementById('editLocation').value.trim(),
     };
+
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(data.phone)) {
+        showToast('Phone number must be 10 digits.', 'error');
+        return;
+    }
     try {
         const res = await apiCall('/api/register-employer/', {
             method:'POST',

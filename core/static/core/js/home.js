@@ -58,8 +58,15 @@ async function submitRegistration() {
         intro_video_url: document.getElementById('regVideo').value.trim(),
     };
 
-    if (!data.full_name || !data.mobile || !data.gender || !data.dob || !data.college) {
-        showToast('Please fill all required fields.', 'error');
+    if (!data.full_name || !data.mobile || !data.gender || !data.dob || !data.college || !data.about) {
+        showToast('Please fill all required fields (marked with *).', 'error');
+        return;
+    }
+
+    // Mobile validation: must be exactly 10 digits
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!mobileRegex.test(data.mobile)) {
+        showToast('Mobile number must be exactly 10 digits.', 'error');
         return;
     }
 
@@ -178,8 +185,14 @@ async function updateStudentProfile() {
         intro_video_url: document.getElementById('editVideo').value.trim(),
     };
     
-    if (!data.full_name || !data.mobile || !data.gender || !data.dob || !data.college) {
-        showToast('Required fields missing.', 'error');
+    if (!data.full_name || !data.mobile || !data.gender || !data.dob || !data.college || !data.about) {
+        showToast('Required fields missing (marked with *).', 'error');
+        return;
+    }
+
+    const mobileRegex = /^[0-9]{10}$/;
+    if (!mobileRegex.test(data.mobile)) {
+        showToast('Mobile number must be 10 digits.', 'error');
         return;
     }
 

@@ -29,12 +29,12 @@
             <h2 style="font-family: 'Syne'; color: var(--primary); margin-bottom: 0.5rem;">Complete Profile</h2>
             <p style="color: var(--text-muted); margin-bottom: 2rem;">Company details required to post gigs.</p>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-                <div><label class="form-label" for="empName" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Full Name</label><input type="text" class="input-field" id="empName" name="full_name"></div>
-                <div><label class="form-label" for="empEmail" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Email</label><input type="text" class="input-field" id="empEmail" name="email" value="{{ email }}" disabled style="opacity:0.6;"></div>
+                <div><label class="form-label" for="empName" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Full Name <span style="color:var(--accent-red);">*</span></label><input type="text" class="input-field" id="empName" name="full_name"></div>
+                <div><label class="form-label" for="empEmail" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Email <span style="color:var(--accent-red);">*</span></label><input type="text" class="input-field" id="empEmail" name="email" value="{{ email }}" disabled style="opacity:0.6;"></div>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
-                <div><label class="form-label" for="empPhone" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Phone</label><input type="tel" class="input-field" id="empPhone" name="phone"></div>
-                <div><label class="form-label" for="empCompany" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Company</label><input type="text" class="input-field" id="empCompany" name="company_name"></div>
+                <div><label class="form-label" for="empPhone" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Phone <span style="color:var(--accent-red);">*</span></label><input type="tel" class="input-field" id="empPhone" name="phone" placeholder="10 digits"></div>
+                <div><label class="form-label" for="empCompany" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Company <span style="color:var(--accent-red);">*</span></label><input type="text" class="input-field" id="empCompany" name="company_name"></div>
             </div>
             <div style="margin-bottom: 1.5rem;"><label class="form-label" for="empLocation" style="display:block; font-size: 0.8rem; margin-bottom: 0.5rem;">Location</label><input type="text" class="input-field" id="empLocation" name="location"></div>
             <button class="btn-create" style="width:100%; padding:1rem;" onclick="saveEmpProfile()">Save Profile</button>
@@ -87,11 +87,11 @@
             <div class="profile-card" style="background: var(--surface); padding: 2.5rem; border-radius: 12px; border: 1px solid var(--border-light); max-width: 800px; margin: 0 auto;">
                 <h2 style="font-family:'Syne'; color:var(--primary); margin-bottom:2rem; text-align:center;">Edit Profile</h2>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
-                    <div><label class="form-label" for="editName" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Name</label><input type="text" class="input-field" id="editName" name="full_name" value="{{ employer.full_name }}"></div>
-                    <div><label class="form-label" for="editPhone" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Phone</label><input type="tel" class="input-field" id="editPhone" name="phone" value="{{ employer.phone }}"></div>
+                    <div><label class="form-label" for="editName" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Name <span style="color:var(--accent-red);">*</span></label><input type="text" class="input-field" id="editName" name="full_name" value="{{ employer.full_name }}"></div>
+                    <div><label class="form-label" for="editPhone" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Phone <span style="color:var(--accent-red);">*</span></label><input type="tel" class="input-field" id="editPhone" name="phone" value="{{ employer.phone }}" placeholder="10 digits"></div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
-                    <div><label class="form-label" for="editCompany" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Company</label><input type="text" class="input-field" id="editCompany" name="company_name" value="{{ employer.company_name }}"></div>
+                    <div><label class="form-label" for="editCompany" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Company <span style="color:var(--accent-red);">*</span></label><input type="text" class="input-field" id="editCompany" name="company_name" value="{{ employer.company_name }}"></div>
                     <div><label class="form-label" for="editLocation" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Location</label><input type="text" class="input-field" id="editLocation" name="location" value="{{ employer.location }}"></div>
                 </div>
                 <button class="btn-create" style="width:100%; padding:1rem;" onclick="updateEmpProfile()">Update Profile</button>
