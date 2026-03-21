@@ -146,13 +146,14 @@ async function submitGig() {
     formData.append('end_time', document.getElementById('gigEndTime').value);
     formData.append('earnings', document.getElementById('gigEarnings').value.trim());
     formData.append('status', document.getElementById('gigStatus').value);
+    formData.append('location', document.getElementById('gigLocation').value.trim());
     
     const imageFile = document.getElementById('gigImage').files[0];
     if (imageFile) {
         formData.append('image', imageFile);
     }
 
-    if (!formData.get('title') || !formData.get('description') || !formData.get('date') || !formData.get('start_time') || !formData.get('end_time') || !formData.get('earnings')) {
+    if (!formData.get('title') || !formData.get('description') || !formData.get('date') || !formData.get('start_time') || !formData.get('end_time') || !formData.get('earnings') || !formData.get('location')) {
         showToast('Please fill all gig details.', 'error');
         return;
     }
@@ -201,6 +202,7 @@ async function openEditModal(id) {
             document.getElementById('editGigEndTime').value = g.end_time;
             document.getElementById('editGigEarnings').value = g.earnings;
             document.getElementById('editGigStatus').value = g.status;
+            document.getElementById('editGigLocation').value = g.location || '';
             document.getElementById('editGigMode').value = 'edit';
             const editBtn = document.querySelector('#editGigModal .btn-create');
             if (editBtn) editBtn.textContent = 'Update';
@@ -261,13 +263,14 @@ async function submitEditGig() {
     formData.append('end_time', document.getElementById('editGigEndTime').value);
     formData.append('earnings', document.getElementById('editGigEarnings').value.trim());
     formData.append('status', document.getElementById('editGigStatus').value);
+    formData.append('location', document.getElementById('editGigLocation').value.trim());
 
     const imageFile = document.getElementById('editGigImage').files[0];
     if (imageFile) {
         formData.append('image', imageFile);
     }
 
-    if (!formData.get('title') || !formData.get('description') || !formData.get('date') || !formData.get('start_time') || !formData.get('end_time') || !formData.get('earnings')) {
+    if (!formData.get('title') || !formData.get('description') || !formData.get('date') || !formData.get('start_time') || !formData.get('end_time') || !formData.get('earnings') || !formData.get('location')) {
         showToast('Please fill all required fields.', 'error');
         return;
     }

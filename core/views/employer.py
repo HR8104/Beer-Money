@@ -70,7 +70,11 @@ def post_gig(request):
         if form.is_valid():
             gig = form.save(commit=False)
             gig.employer = employer
+            if not gig.location:
+                gig.location = employer.location
             gig.save()
+            
+            # Post to telegram
             log_admin_action(request, 'POST_GIG', gig.title, f"Gig created by {employer.email}")
             channel_posted = False
             channel_message = ""
@@ -159,7 +163,8 @@ def get_gig_details(request):
             'end_time': gig.end_time.strftime('%H:%M') if gig.end_time else '',
             'earnings': str(gig.earnings),
             'image_url': gig.image.url if gig.image else '',
-            'status': gig.status
+            'status': gig.status,
+            'location': gig.location
         }
         return JsonResponse({'success': True, 'data': data})
     except Gig.DoesNotExist:
@@ -173,17 +178,29 @@ def update_gig(request):
 
     email = get_session_email(request)
     try:
+        employer = EmployerProfile.objects.get(email=email)
         gig_id = request.POST.get('gig_id') or request.POST.get('id')
         mode = (request.POST.get('mode') or 'edit').strip().lower()
-        gig = Gig.objects.get(id=gig_id, employer__email=email)
+        gig = Gig.objects.get(id=gig_id, employer=employer)
 
-        form = GigForm(request.POST, request.FILES, instance=gig)
+        if mode == 'reuse':
+            form = GigForm(request.POST, request.FILES) # Create NEW instance
+        else:
+            form = GigForm(request.POST, request.FILES, instance=gig)
+
         if form.is_valid():
             updated_gig = form.save(commit=False)
+            updated_gig.employer = employer
             if mode == 'reuse':
                 updated_gig.status = Gig.Status.ACTIVE
+                # Copy old image if no new one uploaded
+                if not updated_gig.image and gig.image:
+                    updated_gig.image = gig.image
+                # For reuse, if location is empty in form, pull from employer
+                if not updated_gig.location:
+                    updated_gig.location = employer.location
             updated_gig.save()
-            return JsonResponse({'success': True, 'message': 'Gig updated successfully!'})
+            return JsonResponse({'success': True, 'message': 'Gig ' + ('created' if mode == 'reuse' else 'updated') + ' successfully!'})
         else:
             return JsonResponse({'success': False, 'message': f'Validation failed: {form.errors.as_text()}'})
     except Exception as e:

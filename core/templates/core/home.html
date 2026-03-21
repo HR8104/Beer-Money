@@ -92,6 +92,10 @@
                                     <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Pay</div>
                                     <div style="font-size: 0.85rem; color: #fbbf24; font-weight: 600;">₹{{ gig.earnings }}</div>
                                 </div>
+                                <div style="flex: 1; background: rgba(255,255,255,0.03); padding: 0.5rem; border-radius: 10px; border: 1px solid var(--glass-border);">
+                                    <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Location</div>
+                                    <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ gig.location }}">{{ gig.location|default:"--" }}</div>
+                                </div>
                             </div>
                             <div style="margin-bottom: 1.5rem;">
                                 <button onclick="viewEmployerDetails('{{ gig.employer.id }}')" style="background: transparent; border: 1px solid var(--glass-border); color: var(--text-muted); padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; cursor: pointer; width: 100%; text-align: left; display: flex; align-items: center; gap: 0.5rem;">
@@ -141,6 +145,7 @@
                             <div class="app-meta">
                                 <span>Company: {{ app.gig.employer.company_name }}</span>
                                 <span>Pay: ₹{{ app.gig.earnings }}</span>
+                                <span>Location: {{ app.gig.location|default:"--" }}</span>
                             </div>
                             <div class="app-date">Applied on {{ app.applied_at|date:"M d, Y" }}</div>
                         </div>
@@ -174,6 +179,7 @@
                             <div class="app-meta">
                                 <span>Company: {{ app.gig.employer.company_name }}</span>
                                 <span>Pay: ₹{{ app.gig.earnings }}</span>
+                                <span>Location: {{ app.gig.location|default:"--" }}</span>
                             </div>
                             <div style="margin-top: 0.8rem; background: rgba(34, 197, 94, 0.1); padding: 0.8rem; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.2);">
                                 <div style="font-size: 0.75rem; color: var(--accent-green); text-transform: uppercase; font-weight: 700; margin-bottom: 0.3rem;">Employer Contact Info</div>
@@ -214,10 +220,10 @@
                             {{ profile.full_name|slice:":1"|upper }}
                         </div>
                     </div>
-                    <h3 style="font-family: 'Syne'; font-size: 1.8rem; color: var(--text); margin-bottom: 0.5rem;">{{ profile.full_name }}</h3>
-                    <p style="color: var(--primary); font-weight: 600; margin-bottom: 1.5rem;">{{ profile.college }}</p>
+                    <h3 style="font-family: 'Syne'; font-size: 1.8rem; color: var(--text); margin-bottom: 2rem;">{{ profile.full_name }}</h3>
                     
                     <div style="display: grid; gap: 1rem; text-align: left; background: rgba(255,255,255,0.03); padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem;">
+                        <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">College</span><span>{{ profile.college }}</span></div>
                         <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Email</span><span>{{ email }}</span></div>
                         <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Mobile</span><span>{{ profile.mobile }}</span></div>
                         <div style="display: flex; justify-content: space-between;"><span style="color: var(--text-muted);">Gender</span><span style="text-transform: capitalize;">{{ profile.gender }}</span></div>

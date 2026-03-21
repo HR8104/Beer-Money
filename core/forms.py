@@ -42,7 +42,7 @@ class EmployerProfileForm(forms.ModelForm):
 class GigForm(forms.ModelForm):
     class Meta:
         model = Gig
-        fields = ['title', 'description', 'date', 'start_time', 'end_time', 'earnings', 'image', 'status']
+        fields = ['title', 'description', 'date', 'start_time', 'end_time', 'earnings', 'image', 'status', 'location']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
             'start_time': forms.TimeInput(attrs={'type': 'time'}),
