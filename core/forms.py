@@ -30,10 +30,11 @@ class EmployerProfileForm(forms.ModelForm):
 class GigForm(forms.ModelForm):
     class Meta:
         model = Gig
-        fields = ['title', 'description', 'date', 'time', 'earnings', 'image', 'status']
+        fields = ['title', 'description', 'date', 'start_time', 'end_time', 'earnings', 'image', 'status']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date'}),
-            'time': forms.TimeInput(attrs={'type': 'time'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),
         }
 
     def clean_title(self):
@@ -45,14 +46,20 @@ class GigForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
         date_val = cleaned_data.get("date")
-        time_val = cleaned_data.get("time")
+        start_time_val = cleaned_data.get("start_time")
+        end_time_val = cleaned_data.get("end_time")
 
-        # If both fields are provided, enforce future timing.
-        if date_val and time_val:
+        # Basic timing checks
+        if date_val and start_time_val:
             gig_dt = timezone.make_aware(
-                datetime.combine(date_val, time_val),
+                datetime.combine(date_val, start_time_val),
                 timezone.get_current_timezone(),
             )
             if gig_dt <= timezone.localtime():
-                raise forms.ValidationError("Gig date/time must be in the future.")
+                raise forms.ValidationError("Gig start time must be in the future.")
+        
+        if start_time_val and end_time_val:
+            if end_time_val <= start_time_val:
+                raise forms.ValidationError("End time must be after start time.")
+
         return cleaned_data

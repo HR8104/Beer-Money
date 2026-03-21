@@ -109,7 +109,7 @@
                         {% for gig in gigs %}
                         <tr id="gig-row-{{ gig.id }}">
                             <td style="font-weight:600;">{{ gig.title }}</td>
-                            <td>{{ gig.date|date:"M d" }}<br><small>{{ gig.time|time:"h:i A" }}</small></td>
+                            <td>{{ gig.date|date:"M d" }}<br><small>{{ gig.start_time|time:"h:i A" }}{% if gig.end_time %} - {{ gig.end_time|time:"h:i A" }}{% endif %}</small></td>
                             <td>{{ gig.employer.company_name }}</td>
                             <td><span class="status-badge {% if gig.status == 'ACTIVE' %}status-active{% else %}status-closed{% endif %}">{{ gig.get_status_display }}</span></td>
                             <td>

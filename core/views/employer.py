@@ -155,8 +155,9 @@ def get_gig_details(request):
             'title': gig.title,
             'description': gig.description,
             'date': str(gig.date) if gig.date else '',
-            'time': str(gig.time) if gig.time else '',
-            'earnings': gig.earnings,
+            'start_time': gig.start_time.strftime('%H:%M') if gig.start_time else '',
+            'end_time': gig.end_time.strftime('%H:%M') if gig.end_time else '',
+            'earnings': str(gig.earnings),
             'image_url': gig.image.url if gig.image else '',
             'status': gig.status
         }

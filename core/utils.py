@@ -48,7 +48,8 @@ def post_gig_to_telegram_channel(gig):
         apply_url = f"https://t.me/{bot_username}?start=apply_{gig.id}"
 
     date_txt = gig.date.strftime("%d %b %Y") if gig.date else "Not specified"
-    time_txt = gig.time.strftime("%I:%M %p") if gig.time else "Not specified"
+    start_time_txt = gig.start_time.strftime("%I:%M %p") if gig.start_time else "Not specified"
+    end_time_txt = gig.end_time.strftime("%I:%M %p") if gig.end_time else "Not specified"
     description = (gig.description or "").strip()
     if len(description) > 450:
         description = f"{description[:447]}..."
@@ -57,9 +58,9 @@ def post_gig_to_telegram_channel(gig):
         f"New Gig Posted\n\n"
         f"Title: {gig.title}\n"
         f"Company: {gig.employer.company_name}\n"
-        f"Earnings: {gig.earnings or 'Not specified'}\n"
+        f"Earnings: ₹{gig.earnings}\n"
         f"Date: {date_txt}\n"
-        f"Time: {time_txt}\n\n"
+        f"Time: {start_time_txt} to {end_time_txt}\n\n"
         f"{description}\n\n"
         "Registered students can apply from the button below."
     )
@@ -145,20 +146,20 @@ def auto_close_expired_gigs(employer=None):
     today = now.date()
     current_time = now.time().replace(second=0, microsecond=0)
 
-    qs = Gig.objects.filter(status=Gig.Status.ACTIVE).exclude(date__isnull=True).exclude(time__isnull=True)
+    qs = Gig.objects.filter(status=Gig.Status.ACTIVE).exclude(date__isnull=True).exclude(start_time__isnull=True)
     if employer is not None:
         qs = qs.filter(employer=employer)
 
-    expired = qs.filter(Q(date__lt=today) | Q(date=today, time__lte=current_time))
+    expired = qs.filter(Q(date__lt=today) | Q(date=today, start_time__lte=current_time))
     return expired.update(status=Gig.Status.CLOSED, updated_at=timezone.now())
 
 
 def is_gig_expired(gig):
-    """Return True if gig date+time is in the past."""
-    if not gig.date or not gig.time:
+    """Return True if gig start_time is in the past."""
+    if not gig.date or not gig.start_time:
         return False
     gig_dt = timezone.make_aware(
-        datetime.combine(gig.date, gig.time),
+        datetime.combine(gig.date, gig.start_time),
         timezone.get_current_timezone(),
     )
     return gig_dt <= timezone.localtime()

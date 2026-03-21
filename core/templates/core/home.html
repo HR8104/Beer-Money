@@ -84,12 +84,13 @@
                                     <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Gig Timing</div>
                                     <div style="font-size: 0.85rem; color: var(--primary); font-weight: 600;">
                                         {% if gig.date %}{{ gig.date|date:"M d" }}{% endif %}
-                                        {% if gig.time %}| {{ gig.time|time:"h:i A" }}{% endif %}
+                                        {% if gig.start_time %}| {{ gig.start_time|time:"h:i A" }}{% endif %}
+                                        {% if gig.end_time %} - {{ gig.end_time|time:"h:i A" }}{% endif %}
                                     </div>
                                 </div>
                                 <div style="flex: 1; background: rgba(255,255,255,0.03); padding: 0.5rem; border-radius: 10px; border: 1px solid var(--glass-border);">
                                     <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Pay</div>
-                                    <div style="font-size: 0.85rem; color: #fbbf24; font-weight: 600;">{{ gig.earnings }}</div>
+                                    <div style="font-size: 0.85rem; color: #fbbf24; font-weight: 600;">₹{{ gig.earnings }}</div>
                                 </div>
                             </div>
                             <div style="margin-bottom: 1.5rem;">
@@ -139,7 +140,7 @@
                             <div class="app-title">{{ app.gig.title }}</div>
                             <div class="app-meta">
                                 <span>Company: {{ app.gig.employer.company_name }}</span>
-                                <span>Pay: {{ app.gig.earnings }}</span>
+                                <span>Pay: ₹{{ app.gig.earnings }}</span>
                             </div>
                             <div class="app-date">Applied on {{ app.applied_at|date:"M d, Y" }}</div>
                         </div>
@@ -172,7 +173,7 @@
                             <div class="app-title" style="color: {% if app.status == 'COMPLETED' %}var(--primary){% else %}var(--accent-green){% endif %};">{{ app.gig.title }}</div>
                             <div class="app-meta">
                                 <span>Company: {{ app.gig.employer.company_name }}</span>
-                                <span>Pay: {{ app.gig.earnings }}</span>
+                                <span>Pay: ₹{{ app.gig.earnings }}</span>
                             </div>
                             <div style="margin-top: 0.8rem; background: rgba(34, 197, 94, 0.1); padding: 0.8rem; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.2);">
                                 <div style="font-size: 0.75rem; color: var(--accent-green); text-transform: uppercase; font-weight: 700; margin-bottom: 0.3rem;">Employer Contact Info</div>

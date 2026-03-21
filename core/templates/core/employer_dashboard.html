@@ -64,7 +64,7 @@
                         {% for gig in gigs %}
                         <tr>
                             <td style="font-weight:600;">{{ gig.title }}</td>
-                            <td>{{ gig.date|date:"M d" }}<br><small>{{ gig.time|time:"h:i A" }}</small></td>
+                            <td>{{ gig.date|date:"M d" }}<br><small>{{ gig.start_time|time:"h:i A" }}{% if gig.end_time %} - {{ gig.end_time|time:"h:i A" }}{% endif %}</small></td>
                             <td>{{ gig.created_at|date:"M d" }}</td>
                             <td><span class="status-badge {% if gig.status == 'ACTIVE' %}status-active{% elif gig.status == 'DRAFT' %}status-draft{% else %}status-closed{% endif %}">{{ gig.get_status_display }}</span></td>
                             <td>{{ gig.applications.count }}</td>
@@ -151,14 +151,22 @@
 
     <!-- Modals -->
     <div class="modal" id="gigModal"><div class="modal-content">
+        <button onclick="closeGigModal()" style="position:absolute; top:1.5rem; right:1.5rem; background:transparent; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">&times;</button>
         <h2 class="modal-title">Post New Gig</h2>
         <div style="margin-bottom:1rem;"><label class="form-label" for="gigTitle" style="display:block; font-size:0.8rem;">Title</label><input type="text" class="input-field" id="gigTitle" name="title"></div>
         <div style="margin-bottom:1rem;"><label class="form-label" for="gigDesc" style="display:block; font-size:0.8rem;">Description</label><textarea class="textarea-field" id="gigDesc" name="description"></textarea></div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1rem;">
             <div><label class="form-label" for="gigDate" style="display:block; font-size:0.8rem;">Date</label><input type="date" class="input-field" id="gigDate" name="date"></div>
-            <div><label class="form-label" for="gigTime" style="display:block; font-size:0.8rem;">Time</label><input type="time" class="input-field" id="gigTime" name="time"></div>
+            <div><label class="form-label" for="gigStartTime" style="display:block; font-size:0.8rem;">Start Time</label><input type="time" class="input-field" id="gigStartTime" name="start_time"></div>
+            <div><label class="form-label" for="gigEndTime" style="display:block; font-size:0.8rem;">End Time</label><input type="time" class="input-field" id="gigEndTime" name="end_time"></div>
         </div>
-        <div style="margin-bottom:1rem;"><label class="form-label" for="gigEarnings" style="display:block; font-size:0.8rem;">Earnings</label><input type="text" class="input-field" id="gigEarnings" name="earnings"></div>
+        <div style="margin-bottom:1rem;">
+            <label class="form-label" for="gigEarnings" style="display:block; font-size:0.8rem;">Earnings (₹)</label>
+            <div style="position:relative;">
+                <span style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:var(--text-muted);">₹</span>
+                <input type="number" class="input-field" id="gigEarnings" name="earnings" style="padding-left:2rem;" placeholder="0.00">
+            </div>
+        </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
             <div><label class="form-label" for="gigImage" style="display:block; font-size:0.8rem;">Gig Image <span style="font-size:0.7rem; color:var(--text-muted);">(Camera/Storage)</span></label><input type="file" class="input-field" id="gigImage" name="image" accept="image/*"></div>
             <div>
@@ -174,16 +182,24 @@
     </div></div>
 
     <div class="modal" id="editGigModal"><div class="modal-content">
+        <button onclick="closeEditModal()" style="position:absolute; top:1.5rem; right:1.5rem; background:transparent; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">&times;</button>
         <h2 class="modal-title">Edit Gig</h2>
         <input type="hidden" id="editGigId" name="gig_id">
         <input type="hidden" id="editGigMode" name="mode" value="edit">
         <div style="margin-bottom:1rem;"><label class="form-label" for="editGigTitle" style="display:block; font-size:0.8rem;">Title</label><input type="text" class="input-field" id="editGigTitle" name="title"></div>
         <div style="margin-bottom:1rem;"><label class="form-label" for="editGigDesc" style="display:block; font-size:0.8rem;">Description</label><textarea class="textarea-field" id="editGigDesc" name="description"></textarea></div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1rem;">
             <div><label class="form-label" for="editGigDate" style="display:block; font-size:0.8rem;">Date</label><input type="date" class="input-field" id="editGigDate" name="date"></div>
-            <div><label class="form-label" for="editGigTime" style="display:block; font-size:0.8rem;">Time</label><input type="time" class="input-field" id="editGigTime" name="time"></div>
+            <div><label class="form-label" for="editGigStartTime" style="display:block; font-size:0.8rem;">Start Time</label><input type="time" class="input-field" id="editGigStartTime" name="start_time"></div>
+            <div><label class="form-label" for="editGigEndTime" style="display:block; font-size:0.8rem;">End Time</label><input type="time" class="input-field" id="editGigEndTime" name="end_time"></div>
         </div>
-        <div style="margin-bottom:1rem;"><label class="form-label" for="editGigEarnings" style="display:block; font-size:0.8rem;">Earnings</label><input type="text" class="input-field" id="editGigEarnings" name="earnings"></div>
+        <div style="margin-bottom:1rem;">
+            <label class="form-label" for="editGigEarnings" style="display:block; font-size:0.8rem;">Earnings (₹)</label>
+            <div style="position:relative;">
+                <span style="position:absolute; left:1rem; top:50%; transform:translateY(-50%); color:var(--text-muted);">₹</span>
+                <input type="number" class="input-field" id="editGigEarnings" name="earnings" style="padding-left:2rem;" placeholder="0.00">
+            </div>
+        </div>
         <div id="editGigPreview" style="margin-bottom: 1rem; text-align: center; display: none;">
             <img src="" style="max-width: 100%; border-radius: 8px; max-height: 150px; border: 1px solid var(--border-light);">
         </div>

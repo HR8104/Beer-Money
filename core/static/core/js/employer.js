@@ -6,8 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
         postGigBtn.removeAttribute('onclick');
         postGigBtn.addEventListener('click', openGigModal);
     }
-    setGigDateTimeConstraints('gigDate', 'gigTime');
-    setGigDateTimeConstraints('editGigDate', 'editGigTime');
+    setGigDateTimeConstraints('gigDate', ['gigStartTime', 'gigEndTime']);
+    setGigDateTimeConstraints('editGigDate', ['editGigStartTime', 'editGigEndTime']);
 });
 
 function getNowLocalParts() {
@@ -19,10 +19,13 @@ function getNowLocalParts() {
     };
 }
 
-function setGigDateTimeConstraints(dateInputId, timeInputId) {
+function setGigDateTimeConstraints(dateInputId, timeInputIds) {
     const dateInput = document.getElementById(dateInputId);
-    const timeInput = document.getElementById(timeInputId);
-    if (!dateInput || !timeInput) return;
+    const timeInputs = (Array.isArray(timeInputIds) ? timeInputIds : [timeInputIds])
+        .map(id => document.getElementById(id))
+        .filter(el => !!el);
+    
+    if (!dateInput || timeInputs.length === 0) return;
 
     const nowParts = getNowLocalParts();
     dateInput.min = nowParts.date;
@@ -30,9 +33,9 @@ function setGigDateTimeConstraints(dateInputId, timeInputId) {
     const syncTimeMin = () => {
         const parts = getNowLocalParts();
         if (dateInput.value === parts.date) {
-            timeInput.min = parts.time;
+            timeInputs.forEach(ti => ti.min = parts.time);
         } else {
-            timeInput.removeAttribute('min');
+            timeInputs.forEach(ti => ti.removeAttribute('min'));
         }
     };
 
@@ -107,7 +110,7 @@ function openGigModal() {
     if (modal) {
         const submitBtn = document.querySelector('#gigModal .btn-create');
         if (submitBtn) submitBtn.textContent = 'Post Gig';
-        setGigDateTimeConstraints('gigDate', 'gigTime');
+        setGigDateTimeConstraints('gigDate', ['gigStartTime', 'gigEndTime']);
         modal.classList.add('active');
         modal.style.display = 'flex'; // Force display as fallback
     }
@@ -127,7 +130,8 @@ async function submitGig() {
     formData.append('title', document.getElementById('gigTitle').value.trim());
     formData.append('description', document.getElementById('gigDesc').value.trim());
     formData.append('date', document.getElementById('gigDate').value);
-    formData.append('time', document.getElementById('gigTime').value);
+    formData.append('start_time', document.getElementById('gigStartTime').value);
+    formData.append('end_time', document.getElementById('gigEndTime').value);
     formData.append('earnings', document.getElementById('gigEarnings').value.trim());
     formData.append('status', document.getElementById('gigStatus').value);
     
@@ -136,7 +140,7 @@ async function submitGig() {
         formData.append('image', imageFile);
     }
 
-    if (!formData.get('title') || !formData.get('description') || !formData.get('date') || !formData.get('time') || !formData.get('earnings')) {
+    if (!formData.get('title') || !formData.get('description') || !formData.get('date') || !formData.get('start_time') || !formData.get('end_time') || !formData.get('earnings')) {
         showToast('Please fill all gig details.', 'error');
         return;
     }
@@ -181,13 +185,14 @@ async function openEditModal(id) {
             document.getElementById('editGigTitle').value = g.title;
             document.getElementById('editGigDesc').value = g.description;
             document.getElementById('editGigDate').value = g.date;
-            document.getElementById('editGigTime').value = g.time;
+            document.getElementById('editGigStartTime').value = g.start_time;
+            document.getElementById('editGigEndTime').value = g.end_time;
             document.getElementById('editGigEarnings').value = g.earnings;
             document.getElementById('editGigStatus').value = g.status;
             document.getElementById('editGigMode').value = 'edit';
             const editBtn = document.querySelector('#editGigModal .btn-create');
             if (editBtn) editBtn.textContent = 'Update';
-            setGigDateTimeConstraints('editGigDate', 'editGigTime');
+            setGigDateTimeConstraints('editGigDate', ['editGigStartTime', 'editGigEndTime']);
             
             // Handle image preview
             const preview = document.getElementById('editGigPreview');
@@ -240,7 +245,8 @@ async function submitEditGig() {
     formData.append('title', document.getElementById('editGigTitle').value.trim());
     formData.append('description', document.getElementById('editGigDesc').value.trim());
     formData.append('date', document.getElementById('editGigDate').value);
-    formData.append('time', document.getElementById('editGigTime').value);
+    formData.append('start_time', document.getElementById('editGigStartTime').value);
+    formData.append('end_time', document.getElementById('editGigEndTime').value);
     formData.append('earnings', document.getElementById('editGigEarnings').value.trim());
     formData.append('status', document.getElementById('editGigStatus').value);
 
@@ -249,7 +255,7 @@ async function submitEditGig() {
         formData.append('image', imageFile);
     }
 
-    if (!formData.get('title') || !formData.get('description') || !formData.get('date') || !formData.get('time') || !formData.get('earnings')) {
+    if (!formData.get('title') || !formData.get('description') || !formData.get('date') || !formData.get('start_time') || !formData.get('end_time') || !formData.get('earnings')) {
         showToast('Please fill all required fields.', 'error');
         return;
     }
