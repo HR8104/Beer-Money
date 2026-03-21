@@ -10,7 +10,7 @@ from django.core.mail import send_mail
 from django.core.management.base import BaseCommand, CommandError
 from django.core.validators import validate_email
 from django.db import transaction
-from django.forms import ValidationError as FormValidationError
+from django.core.exceptions import ValidationError as CoreValidationError
 from django.utils import timezone
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (
@@ -20,6 +20,7 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler,
     filters,
+    DictPersistence,
 )
 
 from core.forms import StudentProfileForm
@@ -333,7 +334,7 @@ async def handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     email = _normalize_text(update.message.text).lower()
     try:
         validate_email(email)
-    except FormValidationError:
+    except CoreValidationError:
         await update.message.reply_text("Please enter a valid email address.")
         return EMAIL
 
@@ -607,12 +608,14 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+_shared_persistence = DictPersistence()
+
 def get_application():
     token = settings.TELEGRAM_BOT_TOKEN
     if not token:
         raise ValueError("TELEGRAM_BOT_TOKEN is missing in settings")
     
-    app = Application.builder().token(token).build()
+    app = Application.builder().token(token).persistence(persistence=_shared_persistence).build()
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
