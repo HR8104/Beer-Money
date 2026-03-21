@@ -35,7 +35,7 @@ def home_view(request):
             .order_by("-applied_at")
         )
         applied_gig_ids = applications.values_list("gig_id", flat=True)
-        hired_applications = applications.filter(status=Application.Status.ACCEPTED)
+        hired_applications = applications.filter(status__in=[Application.Status.ACCEPTED, Application.Status.COMPLETED])
 
         stats["pending"] = applications.filter(status=Application.Status.PENDING).count()
         stats["accepted"] = hired_applications.count()

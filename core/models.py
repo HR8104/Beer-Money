@@ -103,6 +103,7 @@ class Application(models.Model):
         PENDING = 'PENDING', 'Pending'
         ACCEPTED = 'ACCEPTED', 'Accepted'
         REJECTED = 'REJECTED', 'Rejected'
+        COMPLETED = 'COMPLETED', 'Completed'
 
     gig = models.ForeignKey(Gig, on_delete=models.CASCADE, related_name='applications')
     student = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='applications')
@@ -113,6 +114,21 @@ class Application(models.Model):
 
     class Meta:
         unique_together = ('gig', 'student')
+
+
+class Review(models.Model):
+    application = models.ForeignKey(Application, on_delete=models.CASCADE, related_name='reviews')
+    reviewer_email = models.EmailField()
+    reviewee_email = models.EmailField()
+    rating = models.PositiveSmallIntegerField()  # 1-5
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('application', 'reviewer_email')
+
+    def __str__(self):
+        return f"Review by {self.reviewer_email} for {self.reviewee_email}"
 
 class AdminLog(models.Model):
     admin_email = models.EmailField()

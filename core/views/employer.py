@@ -37,8 +37,8 @@ def employer_dashboard_view(request):
     # Get pending applicants only
     applicants = Application.objects.filter(gig__employer=employer, status=Application.Status.PENDING).order_by('-applied_at') if employer else []
     
-    # Get only accepted/hired students
-    hired = Application.objects.filter(gig__employer=employer, status=Application.Status.ACCEPTED).order_by('-updated_at') if employer else []
+    # Get only accepted/hired/completed students
+    hired = Application.objects.filter(gig__employer=employer, status__in=[Application.Status.ACCEPTED, Application.Status.COMPLETED]).order_by('-updated_at') if employer else []
 
     return render(request, 'core/employer_dashboard.html', {
         'email': email,
@@ -215,9 +215,12 @@ def manage_application(request):
                 )
         elif action == 'REJECT':
             application.status = Application.Status.REJECTED
+        elif action == 'COMPLETED':
+            application.status = Application.Status.COMPLETED
+            log_admin_action(request, 'COMPLETE_GIG', application.student.email, f"Gig completed by {application.student.email} for '{application.gig.title}'")
         
         application.save()
-        return JsonResponse({'success': True, 'message': f'Application {action.lower()}ed!'})
+        return JsonResponse({'success': True, 'message': f'Application {action.lower() if action != "COMPLETED" else "marked as complete"}.'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 

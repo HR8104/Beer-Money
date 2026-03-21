@@ -169,7 +169,7 @@
                             {% endif %}
                         </div>
                         <div class="app-info">
-                            <div class="app-title" style="color: var(--accent-green);">{{ app.gig.title }}</div>
+                            <div class="app-title" style="color: {% if app.status == 'COMPLETED' %}var(--primary){% else %}var(--accent-green){% endif %};">{{ app.gig.title }}</div>
                             <div class="app-meta">
                                 <span>Company: {{ app.gig.employer.company_name }}</span>
                                 <span>Pay: {{ app.gig.earnings }}</span>
@@ -184,8 +184,17 @@
                                     Note: Don't contact employer directly. They will contact you within 5-10 hours.
                                 </div>
                             </div>
+                            {% if app.status == 'COMPLETED' %}
+                            <div style="margin-top: 1rem;">
+                                <button class="btn-register" style="padding: 0.6rem 1.2rem; font-size: 0.85rem; width: auto; max-width: none;" onclick="openReviewModal('{{ app.id }}', '{{ app.gig.employer.email }}', '{{ app.gig.employer.company_name }}')">Review Employer</button>
+                            </div>
+                            {% endif %}
                         </div>
+                        {% if app.status == 'COMPLETED' %}
+                        <div class="app-status status-CLOSED" style="background: var(--primary); color: var(--bg);">COMPLETED</div>
+                        {% else %}
                         <div class="app-status status-ACCEPTED" style="background: var(--accent-green); color: white;">HIRED</div>
+                        {% endif %}
                     </div>
                     {% empty %}
                     <div style="text-align: center; padding: 4rem; background: var(--glass); border-radius: 24px; border: 1px dashed var(--glass-border);">
@@ -294,6 +303,27 @@
                 <div class="form-row"><div class="form-group full"><label class="form-label" for="editVideo">Intro Video URL</label><input type="url" class="input-field" id="editVideo" name="intro_video_url" value="{{ profile.intro_video_url|default:'' }}"></div></div>
                 <button class="btn-register" id="updateProfileBtn" onclick="updateStudentProfile()" style="width:100%; max-width:none;">Save Profile</button>
             </div>
+        </div>
+    </div>
+
+    <div id="reviewModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); backdrop-filter:blur(8px); z-index:2000; align-items:center; justify-content:center; padding:2rem;">
+        <div style="background:var(--surface); border:1px solid var(--glass-border); border-radius:24px; padding:2.5rem; width:100%; max-width:500px; position:relative;">
+            <button onclick="closeReviewModal()" style="position:absolute; top:1.5rem; right:1.5rem; background:transparent; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">&times;</button>
+            <h2 style="font-family:'Syne'; color:var(--primary); font-size:2rem; margin-bottom:0.5rem; text-align:center;">Write a Review</h2>
+            <p style="color:var(--text-muted); margin-bottom:2rem; text-align:center;">For: <strong id="reviewTargetName"></strong></p>
+            <input type="hidden" id="reviewAppId">
+            <div style="margin-bottom:2rem; text-align:center;">
+                <label class="form-label" style="display:block; margin-bottom:1rem;">Rating (1-5)</label>
+                <div class="rating-stars" style="display:flex; gap:0.8rem; justify-content:center; font-size:2.5rem; cursor:pointer; color:var(--text-muted);">
+                    <span onclick="setRating(1)">★</span><span onclick="setRating(2)">★</span><span onclick="setRating(3)">★</span><span onclick="setRating(4)">★</span><span onclick="setRating(5)">★</span>
+                </div>
+                <input type="hidden" id="reviewRating" value="0">
+            </div>
+            <div style="margin-bottom:2rem;">
+                <label class="form-label" for="reviewComment" style="display:block; font-size:0.9rem; margin-bottom:0.8rem;">Comment (Optional)</label>
+                <textarea class="textarea-field" id="reviewComment" placeholder="How was your experience?" style="min-height:100px;"></textarea>
+            </div>
+            <button class="btn-register" style="width:100%; max-width:none;" onclick="submitReview()">Submit Review</button>
         </div>
     </div>
 {% endblock %}

@@ -366,3 +366,86 @@ function closeStudentModal() {
         modal.style.display = 'none';
     }
 }
+
+// Review logic
+function openReviewModal(appId, targetEmail, targetName) {
+    document.getElementById('reviewAppId').value = appId;
+    document.getElementById('reviewTargetName').textContent = targetName;
+    document.getElementById('reviewRating').value = 0;
+    document.getElementById('reviewComment').value = '';
+    
+    // Reset stars
+    const stars = document.querySelectorAll('.rating-stars span');
+    stars.forEach(s => s.style.color = 'var(--text-muted)');
+    
+    const modal = document.getElementById('reviewModal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+    }
+}
+
+function closeReviewModal() {
+    const modal = document.getElementById('reviewModal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+    }
+}
+
+function setRating(rating) {
+    document.getElementById('reviewRating').value = rating;
+    const stars = document.querySelectorAll('.rating-stars span');
+    stars.forEach((s, idx) => {
+        if (idx < rating) {
+            s.style.color = 'var(--primary)';
+        } else {
+            s.style.color = 'var(--text-muted)';
+        }
+    });
+}
+
+async function submitReview() {
+    const appId = document.getElementById('reviewAppId').value;
+    const rating = document.getElementById('reviewRating').value;
+    const comment = document.getElementById('reviewComment').value.trim();
+    
+    if (rating == 0) {
+        showToast('Please select a rating.', 'error');
+        return;
+    }
+    
+    const btn = document.querySelector('#reviewModal .btn-create');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Submitting...';
+    }
+    
+    try {
+        const res = await apiCall('/api/reviews/submit/', {
+            method: 'POST',
+            body: JSON.stringify({
+                application_id: appId,
+                rating: parseInt(rating),
+                comment: comment
+            })
+        });
+        const result = await res.json();
+        if (result.success) {
+            showToast('Review submitted!', 'success');
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showToast(result.message, 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Submit Review';
+            }
+        }
+    } catch (e) {
+        showToast('Error submitting review.', 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Submit Review';
+        }
+    }
+}

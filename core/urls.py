@@ -2,6 +2,7 @@ from django.urls import path
 from .views import admin as admin_views
 from .views import auth, employer, main, student
 from .views import telegram as telegram_views
+from .views import reviews
 
 urlpatterns = [
     path('', main.index, name='index'),
@@ -15,6 +16,10 @@ urlpatterns = [
     path('api/verify-otp/', auth.verify_otp, name='verify_otp'),
     path('api/resend-otp/', auth.resend_otp, name='resend_otp'),
     path('api/register/', auth.register_user, name='register_user'),
+
+    # Review endpoints
+    path('api/reviews/submit/', reviews.submit_review, name='submit_review'),
+    path('api/reviews/get/', reviews.get_reviews_for_application, name='get_reviews'),
 
     # Admin endpoints
     path('admin-dashboard/', admin_views.admin_dashboard_view, name='admin_dashboard'),

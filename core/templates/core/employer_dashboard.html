@@ -132,7 +132,14 @@
                             <td><a href="javascript:void(0)" onclick="viewStudent('{{ app.student.id }}')" style="color:var(--primary);">{{ app.student.full_name }}</a></td>
                             <td>{{ app.gig.title }}</td>
                             <td>{{ app.updated_at|date:"M d" }}</td>
-                            <td><button class="btn-action" style="background:var(--accent-red);" onclick="manageApp('{{ app.id }}', 'REJECT')">Remove</button></td>
+                            <td>
+                                {% if app.status == 'ACCEPTED' %}
+                                    <button class="btn-action" style="background:var(--accent-green);" onclick="manageApp('{{ app.id }}', 'COMPLETED')">Mark as Completed</button>
+                                {% elif app.status == 'COMPLETED' %}
+                                    <span class="status-badge status-closed">Completed</span>
+                                    <button class="btn-action" style="background:var(--primary);" onclick="openReviewModal('{{ app.id }}', '{{ app.student.email }}', '{{ app.student.full_name }}')">Review student</button>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% empty %}<tr><td colspan="4" style="text-align:center; padding:3rem;">No students hired yet.</td></tr>{% endfor %}
                     </tbody>
@@ -190,6 +197,25 @@
         <h2 class="modal-title" id="sName">Student</h2>
         <div id="sBody"></div>
         <button class="close-modal" onclick="closeStudentModal()">Close</button>
+    </div></div>
+
+    <div class="modal" id="reviewModal"><div class="modal-content">
+        <h2 class="modal-title">Write a Review</h2>
+        <p style="color:var(--text-muted); margin-bottom:1.5rem;">For: <strong id="reviewTargetName"></strong></p>
+        <input type="hidden" id="reviewAppId">
+        <div style="margin-bottom:1.5rem;">
+            <label class="form-label" style="display:block; margin-bottom:0.8rem;">Rating (1-5)</label>
+            <div class="rating-stars" style="display:flex; gap:0.5rem; justify-content:center; font-size:2rem; cursor:pointer;">
+                <span onclick="setRating(1)">★</span><span onclick="setRating(2)">★</span><span onclick="setRating(3)">★</span><span onclick="setRating(4)">★</span><span onclick="setRating(5)">★</span>
+            </div>
+            <input type="hidden" id="reviewRating" value="0">
+        </div>
+        <div style="margin-bottom:1.5rem;">
+            <label class="form-label" for="reviewComment" style="display:block; font-size:0.8rem; margin-bottom:0.5rem;">Comment (Optional)</label>
+            <textarea class="textarea-field" id="reviewComment" placeholder="How was your experience?"></textarea>
+        </div>
+        <button class="btn-create" style="width:100%;" onclick="submitReview()">Submit Review</button>
+        <button class="close-modal" onclick="closeReviewModal()">Cancel</button>
     </div></div>
 {% endblock %}
 
