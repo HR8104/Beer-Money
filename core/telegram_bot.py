@@ -625,11 +625,12 @@ class DjangoPersistence(BasePersistence):
         self.conversations_cache: dict[str, Any] = {}
         self._loaded = False
 
-    def _load(self):
+    async def _load(self):
         if self._loaded:
             return
         from core.models import BotState
-        obj, _ = BotState.objects.get_or_create(key=self.key)
+        from asgiref.sync import sync_to_async
+        obj, _ = await sync_to_async(BotState.objects.get_or_create)(key=self.key)
         self.user_data_cache = {int(k): v for k, v in (obj.user_data or {}).items()}
         self.chat_data_cache = {int(k): v for k, v in (obj.chat_data or {}).items()}
         self.bot_data_cache = obj.bot_data or {}
@@ -637,19 +638,19 @@ class DjangoPersistence(BasePersistence):
         self._loaded = True
 
     async def get_user_data(self):
-        self._load()
+        await self._load()
         return deepcopy(self.user_data_cache)
 
     async def get_chat_data(self):
-        self._load()
+        await self._load()
         return deepcopy(self.chat_data_cache)
 
     async def get_bot_data(self):
-        self._load()
+        await self._load()
         return deepcopy(self.bot_data_cache)
 
     async def get_conversations(self, name):
-        self._load()
+        await self._load()
         # Conversations keys are tuples (user_id, chat_id) or integers
         # In JSON they are stored as string representation
         raw = self.conversations_cache.get(name, {})
@@ -667,29 +668,29 @@ class DjangoPersistence(BasePersistence):
         return res
 
     async def update_user_data(self, user_id, data):
-        self._load()
+        await self._load()
         self.user_data_cache[user_id] = data
 
     async def update_chat_data(self, chat_id, data):
-        self._load()
+        await self._load()
         self.chat_data_cache[chat_id] = data
 
     async def update_bot_data(self, data):
-        self._load()
+        await self._load()
         self.bot_data_cache = data
 
     async def update_conversation(self, name, key, new_state):
-        self._load()
+        await self._load()
         if name not in self.conversations_cache:
             self.conversations_cache[name] = {}
         self.conversations_cache[name][str(key)] = new_state
 
     async def drop_chat_data(self, chat_id):
-        self._load()
+        await self._load()
         self.chat_data_cache.pop(chat_id, None)
 
     async def drop_user_data(self, user_id):
-        self._load()
+        await self._load()
         self.user_data_cache.pop(user_id, None)
 
     async def get_callback_data(self):
