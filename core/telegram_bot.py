@@ -51,7 +51,9 @@ from core.models import (
     INTRO_VIDEO_URL,
     PROFILE_PICTURE_URL,
     CONFIRM,
-) = range(13)
+    EDIT_CHOICE,
+    EDIT_VALUE,
+) = range(15)
 
 
 def _normalize_text(value: str) -> str:
@@ -452,7 +454,7 @@ async def handle_mobile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         await update.message.reply_text("Please enter a valid mobile number (7-15 digits).")
         return MOBILE
     context.user_data["mobile"] = mobile
-    keyboard = [["male", "female", "other"]]
+    keyboard = [["male", "female", "prefer not to say"]]
     await update.message.reply_text(
         "Select your gender:",
         reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True),
@@ -464,10 +466,10 @@ async def handle_gender(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
     if not update.message:
         return GENDER
     gender = _normalize_text(update.message.text).lower()
-    if gender not in {"male", "female", "other"}:
-        await update.message.reply_text("Please choose: male, female, or other.")
+    if gender not in {"male", "female", "prefer not to say"}:
+        await update.message.reply_text("Please choose: male, female, or prefer not to say.")
         return GENDER
-    context.user_data["gender"] = gender
+    context.user_data["gender"] = "other" if gender == "prefer not to say" else gender
     await update.message.reply_text(
         "Enter your date of birth in YYYY-MM-DD format:",
         reply_markup=ReplyKeyboardRemove(),
@@ -541,6 +543,10 @@ async def handle_profile_picture_url(update: Update, context: ContextTypes.DEFAU
     context.user_data["profile_picture_url"] = (
         "" if profile_picture_url.lower() == "skip" else profile_picture_url
     )
+    return await _show_confirmation(update, context)
+
+
+async def _show_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     summary = (
         "Please confirm your details:\n\n"
         f"Email: {context.user_data.get('email')}\n"
@@ -553,9 +559,13 @@ async def handle_profile_picture_url(update: Update, context: ContextTypes.DEFAU
         f"Skills: {context.user_data.get('skills')}\n"
         f"Intro Video URL: {context.user_data.get('intro_video_url') or '(empty)'}\n"
         f"Profile Picture URL: {context.user_data.get('profile_picture_url') or '(empty)'}\n\n"
-        "Reply with `yes` to submit, or `no` to cancel."
+        "Confirm these details?"
     )
-    await update.message.reply_text(summary)
+    keyboard = [["yes", "no"]]
+    await update.message.reply_text(
+        summary,
+        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True),
+    )
     return CONFIRM
 
 
@@ -568,13 +578,23 @@ async def handle_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return ConversationHandler.END
 
     answer = _normalize_text(update.message.text).lower()
-    if answer != "yes":
+    if answer == "no":
+        keyboard = [
+            ["Full Name", "Mobile"],
+            ["Gender", "DOB"],
+            ["College", "About"],
+            ["Skills", "Intro Video"],
+            ["Profile Picture", "Cancel Registration"],
+        ]
         await update.message.reply_text(
-            "Registration cancelled. Send /start to begin again.",
-            reply_markup=ReplyKeyboardRemove(),
+            "What field would you like to edit?",
+            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True),
         )
-        context.user_data.clear()
-        return ConversationHandler.END
+        return EDIT_CHOICE
+
+    if answer != "yes":
+        await update.message.reply_text("Please reply with 'yes' or 'no'.")
+        return CONFIRM
 
     payload: dict[str, Any] = {
         "email": context.user_data["email"],
@@ -601,6 +621,90 @@ async def handle_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     )
     context.user_data.clear()
     return ConversationHandler.END
+
+
+async def handle_edit_choice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    choice = _normalize_text(update.message.text)
+    if choice == "Cancel Registration":
+        return await cancel(update, context)
+
+    fields_map = {
+        "Full Name": "full_name",
+        "Mobile": "mobile",
+        "Gender": "gender",
+        "DOB": "dob",
+        "College": "college",
+        "About": "about",
+        "Skills": "skills",
+        "Intro Video": "intro_video_url",
+        "Profile Picture": "profile_picture_url",
+    }
+
+    if choice not in fields_map:
+        await update.message.reply_text("Invalid selection. Please use the buttons.")
+        return EDIT_CHOICE
+
+    context.user_data["current_editing_field"] = choice
+    
+    if choice == "Gender":
+        keyboard = [["male", "female", "prefer not to say"]]
+        await update.message.reply_text(
+            "Select new gender:",
+            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True),
+        )
+    else:
+        await update.message.reply_text(f"Enter new value for {choice}:", reply_markup=ReplyKeyboardRemove())
+
+    return EDIT_VALUE
+
+
+async def handle_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    field_choice = context.user_data.get("current_editing_field")
+    value = _normalize_text(update.message.text)
+
+    if field_choice == "Full Name":
+        if len(value) < 2:
+            await update.message.reply_text("Too short. Enter new full name:")
+            return EDIT_VALUE
+        context.user_data["full_name"] = value
+    elif field_choice == "Mobile":
+        if not _is_valid_phone(value):
+            await update.message.reply_text("Invalid mobile. Enter new mobile:")
+            return EDIT_VALUE
+        context.user_data["mobile"] = value
+    elif field_choice == "Gender":
+        val = value.lower()
+        if val not in {"male", "female", "prefer not to say"}:
+            await update.message.reply_text("Please use buttons: male, female, prefer not to say.")
+            return EDIT_VALUE
+        context.user_data["gender"] = "other" if val == "prefer not to say" else val
+    elif field_choice == "DOB":
+        parsed = _parse_date(value)
+        if not parsed or parsed >= date.today():
+             await update.message.reply_text("Invalid date. Enter new DOB (YYYY-MM-DD):")
+             return EDIT_VALUE
+        context.user_data["dob"] = parsed.isoformat()
+    elif field_choice == "College":
+        if len(value) < 2:
+            await update.message.reply_text("Invalid college. Enter new college:")
+            return EDIT_VALUE
+        context.user_data["college"] = value
+    elif field_choice == "About":
+        if len(value) < 10:
+            await update.message.reply_text("Minimum 10 chars. Enter new bio:")
+            return EDIT_VALUE
+        context.user_data["about"] = value
+    elif field_choice == "Skills":
+        if len(value) < 2:
+            await update.message.reply_text("Invalid skills. Enter new skills:")
+            return EDIT_VALUE
+        context.user_data["skills"] = value
+    elif field_choice == "Intro Video":
+        context.user_data["intro_video_url"] = "" if value.lower() == "skip" else value
+    elif field_choice == "Profile Picture":
+        context.user_data["profile_picture_url"] = "" if value.lower() == "skip" else value
+
+    return await _show_confirmation(update, context)
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -754,6 +858,8 @@ def get_application():
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_profile_picture_url)
             ],
             CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirm)],
+            EDIT_CHOICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_edit_choice)],
+            EDIT_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_edit_value)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         name="registration_flow",
