@@ -20,8 +20,10 @@ from telegram.ext import (
     ConversationHandler,
     MessageHandler,
     filters,
-    DictPersistence,
+    BasePersistence,
+    PersistenceInput,
 )
+from copy import deepcopy
 
 from core.forms import StudentProfileForm
 from core.utils import is_gig_expired
@@ -316,6 +318,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return ConversationHandler.END
 
     context.user_data.clear()
+    print(f"DEBUG: Starting registration for user {user.id}")
     await update.message.reply_text(
         "Welcome to Beer Money student registration.\n"
         "Enter your email address:",
@@ -332,9 +335,11 @@ async def handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         return ConversationHandler.END
 
     email = _normalize_text(update.message.text).lower()
+    print(f"DEBUG: Received email '{email}' from user {user.id}")
     try:
         validate_email(email)
     except CoreValidationError:
+        print(f"DEBUG: Invalid email '{email}' from user {user.id}")
         await update.message.reply_text("Please enter a valid email address.")
         return EMAIL
 
@@ -608,14 +613,103 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
-_shared_persistence = DictPersistence()
+class DjangoPersistence(BasePersistence):
+    def __init__(self, key="tg_persistence"):
+        super().__init__(
+            store_data=PersistenceInput(bot_data=True, user_data=True, chat_data=True)
+        )
+        self.key = key
+        self.user_data_cache: dict[int, Any] = {}
+        self.chat_data_cache: dict[int, Any] = {}
+        self.bot_data_cache: dict[str, Any] = {}
+        self.conversations_cache: dict[str, Any] = {}
+        self._loaded = False
+
+    def _load(self):
+        if self._loaded:
+            return
+        from core.models import BotState
+        obj, _ = BotState.objects.get_or_create(key=self.key)
+        self.user_data_cache = {int(k): v for k, v in (obj.user_data or {}).items()}
+        self.chat_data_cache = {int(k): v for k, v in (obj.chat_data or {}).items()}
+        self.bot_data_cache = obj.bot_data or {}
+        self.conversations_cache = obj.conversations or {}
+        self._loaded = True
+
+    async def get_user_data(self):
+        self._load()
+        return deepcopy(self.user_data_cache)
+
+    async def get_chat_data(self):
+        self._load()
+        return deepcopy(self.chat_data_cache)
+
+    async def get_bot_data(self):
+        self._load()
+        return deepcopy(self.bot_data_cache)
+
+    async def get_conversations(self, name):
+        self._load()
+        # Conversations keys are tuples (user_id, chat_id) or integers
+        # In JSON they are stored as string representation
+        raw = self.conversations_cache.get(name, {})
+        res = {}
+        for k, v in raw.items():
+            try:
+                if k.startswith('(') and k.endswith(')'):
+                    parts = k[1:-1].split(',')
+                    key = tuple(int(p.strip()) for p in parts)
+                else:
+                    key = int(k)
+                res[key] = v
+            except (ValueError, SyntaxError):
+                res[k] = v
+        return res
+
+    async def update_user_data(self, user_id, data):
+        self._load()
+        self.user_data_cache[user_id] = data
+
+    async def update_chat_data(self, chat_id, data):
+        self._load()
+        self.chat_data_cache[chat_id] = data
+
+    async def update_bot_data(self, data):
+        self._load()
+        self.bot_data_cache = data
+
+    async def update_conversation(self, name, key, new_state):
+        self._load()
+        if name not in self.conversations_cache:
+            self.conversations_cache[name] = {}
+        self.conversations_cache[name][str(key)] = new_state
+
+    async def flush(self):
+        if not self._loaded:
+            return
+        from core.models import BotState
+        
+        # Ensure we always update the latest version
+        await sync_to_async(BotState.objects.update_or_create)(
+            key=self.key,
+            defaults={
+                "user_data": {str(k): v for k, v in self.user_data_cache.items()},
+                "chat_data": {str(k): v for k, v in self.chat_data_cache.items()},
+                "bot_data": self.bot_data_cache,
+                "conversations": self.conversations_cache,
+            }
+        )
+
+
+_persistence = DjangoPersistence()
+
 
 def get_application():
     token = settings.TELEGRAM_BOT_TOKEN
     if not token:
         raise ValueError("TELEGRAM_BOT_TOKEN is missing in settings")
     
-    app = Application.builder().token(token).persistence(persistence=_shared_persistence).build()
+    app = Application.builder().token(token).persistence(persistence=_persistence).build()
     conv = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -638,6 +732,8 @@ def get_application():
             CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirm)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
+        name="registration_flow",
+        persistent=True,
     )
     app.add_handler(conv)
     return app
