@@ -699,10 +699,10 @@ class DjangoPersistence(BasePersistence):
     async def refresh_bot_data(self, data):
         pass
 
-    async def refresh_chat_data(self, chat_id, data):
+    async def refresh_chat_data(self, chat_id, chat_data):
         pass
 
-    async def refresh_user_data(self, user_id, data):
+    async def refresh_user_data(self, user_id, user_data):
         pass
 
     async def update_callback_data(self, data):
