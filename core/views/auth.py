@@ -47,6 +47,11 @@ def _send_login_otp_email(email, otp, *, is_resend=False):
     )
 
 
+def _log_test_otp(email: str, otp: str, source: str) -> None:
+    if getattr(settings, "OTP_LOG_TO_CONSOLE_FOR_TESTING", False):
+        logger.warning("[TEST OTP][%s] email=%s otp=%s", source, email, otp)
+
+
 def _limit_scope(request, email: str) -> str:
     return f"{get_client_ip(request)}:{email or 'unknown'}"
 
@@ -123,6 +128,7 @@ def send_otp(request):
     request.session["otp"] = otp
     request.session["otp_email"] = email
     request.session["otp_created"] = timezone.now().isoformat()
+    _log_test_otp(email, otp, "send")
 
     try:
         _send_login_otp_email(email, otp, is_resend=False)
@@ -251,6 +257,7 @@ def resend_otp(request):
     otp = str(random.randint(100000, 999999))
     request.session["otp"] = otp
     request.session["otp_created"] = timezone.now().isoformat()
+    _log_test_otp(email, otp, "resend")
 
     try:
         _send_login_otp_email(email, otp, is_resend=True)

@@ -98,6 +98,8 @@ def _email_linked_to_other_telegram(email: str, telegram_user_id: int) -> bool:
 
 def _send_email_otp(email: str, telegram_user_id: int) -> tuple[bool, str]:
     otp = str(random.randint(100000, 999999))
+    if getattr(settings, "OTP_LOG_TO_CONSOLE_FOR_TESTING", False):
+        logger.warning("[TEST OTP][telegram] email=%s telegram_user_id=%s otp=%s", email, telegram_user_id, otp)
     expiry_minutes = int(getattr(settings, "OTP_EXPIRY_MINUTES", 5))
     expires_at = timezone.now() + timedelta(minutes=expiry_minutes)
 

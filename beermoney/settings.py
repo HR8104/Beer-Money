@@ -182,6 +182,7 @@ OTP_RESEND_RATE_LIMIT = int(os.getenv("OTP_RESEND_RATE_LIMIT", "5"))
 OTP_RATE_LIMIT_WINDOW_SECONDS = int(os.getenv("OTP_RATE_LIMIT_WINDOW_SECONDS", "900"))
 OTP_VERIFY_MAX_FAILURES = int(os.getenv("OTP_VERIFY_MAX_FAILURES", "5"))
 OTP_VERIFY_LOCKOUT_SECONDS = int(os.getenv("OTP_VERIFY_LOCKOUT_SECONDS", "900"))
+OTP_LOG_TO_CONSOLE_FOR_TESTING = env_bool("OTP_LOG_TO_CONSOLE_FOR_TESTING", DEBUG)
 
 # Admin email list - these users get access to the Master Admin Dashboard
 ADMIN_EMAILS = env_list("ADMIN_EMAILS", "")
