@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import logging
 from datetime import date, timedelta
 from typing import Any
 
@@ -37,6 +38,8 @@ from core.models import (
     UserProfile,
     UserRole,
 )
+
+logger = logging.getLogger(__name__)
 
 
 (
@@ -322,7 +325,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return ConversationHandler.END
 
     context.user_data.clear()
-    print(f"DEBUG: Starting registration for user {user.id}")
+    logger.debug("Starting registration for Telegram user id=%s", user.id)
     await update.message.reply_text(
         "Welcome to Beer Money student registration.\n"
         "Enter your email address:",
@@ -339,11 +342,11 @@ async def handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         return ConversationHandler.END
 
     email = _normalize_text(update.message.text).lower()
-    print(f"DEBUG: Received email '{email}' from user {user.id}")
+    logger.debug("Received email during Telegram registration for user id=%s", user.id)
     try:
         validate_email(email)
     except CoreValidationError:
-        print(f"DEBUG: Invalid email '{email}' from user {user.id}")
+        logger.debug("Invalid email received during Telegram registration for user id=%s", user.id)
         await update.message.reply_text("Please enter a valid email address.")
         return EMAIL
 
@@ -468,7 +471,7 @@ async def handle_mobile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> i
         return MOBILE
     mobile = _normalize_text(update.message.text)
     if not _is_valid_phone(mobile):
-        await update.message.reply_text("Please enter a valid mobile number (7-15 digits).")
+        await update.message.reply_text("Please enter a valid mobile number (10 digits).")
         return MOBILE
     context.user_data["mobile"] = mobile
     keyboard = [["male", "female", "prefer not to say"]]

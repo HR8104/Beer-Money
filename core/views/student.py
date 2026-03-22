@@ -1,5 +1,6 @@
 import json
 
+from django.db import IntegrityError
 from django.http import JsonResponse
 from django.shortcuts import render
 
@@ -90,7 +91,7 @@ def apply_to_gig(request):
         return JsonResponse({"success": False, "message": "Please complete your profile first."})
     except Gig.DoesNotExist:
         return JsonResponse({"success": False, "message": "Gig not found."})
+    except IntegrityError:
+        return JsonResponse({"success": False, "message": "You have already applied for this gig."})
     except Exception as exc:
-        if "UNIQUE constraint failed" in str(exc):
-            return JsonResponse({"success": False, "message": "You have already applied for this gig."})
         return JsonResponse({"success": False, "message": str(exc)})

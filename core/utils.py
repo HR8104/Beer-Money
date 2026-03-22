@@ -1,9 +1,10 @@
-from django.conf import settings
-from django.utils import timezone
-from django.db.models import Q
 import json
 from datetime import datetime
 from urllib import error, parse, request as urlrequest
+
+from django.conf import settings
+from django.db.models import Q
+from django.utils import timezone
 
 from .models import AdminLog, Gig, TelegramRegistration
 
@@ -34,6 +35,25 @@ def log_admin_action(request, action, target, details=""):
     )
 
 
+def _send_telegram_api_request(bot_token, payload):
+    api_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    encoded = parse.urlencode(payload).encode("utf-8")
+    req = urlrequest.Request(api_url, data=encoded, method="POST")
+
+    try:
+        with urlrequest.urlopen(req, timeout=15) as resp:
+            body = resp.read().decode("utf-8")
+            data = json.loads(body)
+    except error.URLError as exc:
+        return False, f"Telegram request failed: {exc}"
+    except Exception as exc:
+        return False, f"Telegram response parse failed: {exc}"
+
+    if not data.get("ok"):
+        return False, data.get("description", "Telegram API returned an error.")
+    return True, "Sent"
+
+
 def post_gig_to_telegram_channel(gig):
     """Publish a gig announcement to configured Telegram channel."""
     bot_token = getattr(settings, "TELEGRAM_BOT_TOKEN", "").strip()
@@ -58,7 +78,7 @@ def post_gig_to_telegram_channel(gig):
         f"New Gig Posted\n\n"
         f"Title: {gig.title}\n"
         f"Company: {gig.employer.company_name}\n"
-        f"Earnings: ₹{gig.earnings}\n"
+        f"Earnings: Rs. {gig.earnings}\n"
         f"Date: {date_txt}\n"
         f"Time: {start_time_txt} to {end_time_txt}\n\n"
         f"{description}\n\n"
@@ -74,21 +94,9 @@ def post_gig_to_telegram_channel(gig):
             {"inline_keyboard": [[{"text": "Apply via Bot", "url": apply_url}]]}
         )
 
-    api_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    encoded = parse.urlencode(payload).encode("utf-8")
-    req = urlrequest.Request(api_url, data=encoded, method="POST")
-
-    try:
-        with urlrequest.urlopen(req, timeout=15) as resp:
-            body = resp.read().decode("utf-8")
-            data = json.loads(body)
-    except error.URLError as exc:
-        return False, f"Telegram request failed: {exc}"
-    except Exception as exc:
-        return False, f"Telegram response parse failed: {exc}"
-
-    if not data.get("ok"):
-        return False, data.get("description", "Telegram API returned an error.")
+    ok, status_message = _send_telegram_api_request(bot_token, payload)
+    if not ok:
+        return False, status_message
     return True, "Posted to Telegram channel."
 
 
@@ -99,22 +107,7 @@ def send_telegram_text(chat_id, text):
         return False, "Telegram bot token not configured."
 
     payload = {"chat_id": str(chat_id), "text": text}
-    api_url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
-    encoded = parse.urlencode(payload).encode("utf-8")
-    req = urlrequest.Request(api_url, data=encoded, method="POST")
-
-    try:
-        with urlrequest.urlopen(req, timeout=15) as resp:
-            body = resp.read().decode("utf-8")
-            data = json.loads(body)
-    except error.URLError as exc:
-        return False, f"Telegram request failed: {exc}"
-    except Exception as exc:
-        return False, f"Telegram response parse failed: {exc}"
-
-    if not data.get("ok"):
-        return False, data.get("description", "Telegram API returned an error.")
-    return True, "Sent"
+    return _send_telegram_api_request(bot_token, payload)
 
 
 def notify_selected_student_on_telegram(application):

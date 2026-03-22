@@ -134,6 +134,12 @@ def employer_manage_gig(request):
             return JsonResponse({'success': True, 'message': 'Gig deleted.'})
         
         return JsonResponse({'success': False, 'message': 'Invalid action.'})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': 'Invalid JSON.'}, status=400)
+    except EmployerProfile.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Employer profile not found.'})
+    except Gig.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Gig not found.'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 
@@ -203,6 +209,10 @@ def update_gig(request):
             return JsonResponse({'success': True, 'message': 'Gig ' + ('created' if mode == 'reuse' else 'updated') + ' successfully!'})
         else:
             return JsonResponse({'success': False, 'message': f'Validation failed: {form.errors.as_text()}'})
+    except EmployerProfile.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Employer profile not found.'})
+    except Gig.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Gig not found.'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 
@@ -216,7 +226,7 @@ def manage_application(request):
     try:
         data = json.loads(request.body)
         app_id = data.get('application_id') or data.get('app_id')
-        action = data.get('action') # 'ACCEPT' or 'REJECT'
+        action = (data.get('action') or '').upper() # 'ACCEPT' or 'REJECT'
 
         application = Application.objects.get(id=app_id, gig__employer__email=email)
         
@@ -236,9 +246,15 @@ def manage_application(request):
         elif action == 'COMPLETED':
             application.status = Application.Status.COMPLETED
             log_admin_action(request, 'COMPLETE_GIG', application.student.email, f"Gig completed by {application.student.email} for '{application.gig.title}'")
+        else:
+            return JsonResponse({'success': False, 'message': 'Invalid action.'}, status=400)
         
         application.save()
         return JsonResponse({'success': True, 'message': f'Application {action.lower() if action != "COMPLETED" else "marked as complete"}.'})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': 'Invalid JSON.'}, status=400)
+    except Application.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Application not found.'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 
@@ -265,6 +281,8 @@ def register_employer(request):
             return JsonResponse({'success': True, 'message': 'Profile saved!'})
         else:
             return JsonResponse({'success': False, 'message': f'Validation error: {form.errors.as_text()}'})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': 'Invalid JSON.'}, status=400)
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 

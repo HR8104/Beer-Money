@@ -34,7 +34,7 @@ def submit_review(request):
         
         reviewee_email = application.student.email if is_employer else application.gig.employer.email
         
-        review, created = Review.objects.update_or_create(
+        Review.objects.update_or_create(
             application=application,
             reviewer_email=email,
             defaults={
@@ -47,6 +47,12 @@ def submit_review(request):
         log_admin_action(request, 'SUBMIT_REVIEW', application.gig.title, f"Review submitted by {email} for {reviewee_email}")
         
         return JsonResponse({'success': True, 'message': 'Review submitted successfully!'})
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': 'Invalid JSON.'}, status=400)
+    except (TypeError, ValueError):
+        return JsonResponse({'success': False, 'message': 'Invalid rating. Please provide 1-5.'})
+    except Application.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Application not found.'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
 
@@ -65,5 +71,7 @@ def get_reviews_for_application(request):
                 'created_at': r.created_at.strftime('%Y-%m-%d %H:%M')
             })
         return JsonResponse({'success': True, 'reviews': data})
+    except Application.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Application not found.'})
     except Exception as e:
         return JsonResponse({'success': False, 'message': str(e)})
