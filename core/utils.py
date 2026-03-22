@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from .models import AdminLog, Gig, TelegramRegistration
+from .security import security_event
 
 
 def get_session_email(request):
@@ -32,6 +33,12 @@ def log_admin_action(request, action, target, details=""):
         action=action,
         target=target,
         details=details,
+    )
+    security_event(
+        event="admin_action",
+        admin_email=admin_email,
+        action=action,
+        target=target,
     )
 
 

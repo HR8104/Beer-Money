@@ -1,9 +1,11 @@
 import json
+import logging
 from django.shortcuts import render
 from django.http import JsonResponse
 from ..models import UserProfile, UserRole, EmployerProfile, Gig, Application
-from ..decorators import employer_only, staff_only
+from ..decorators import employer_only, role_required, staff_only
 from ..forms import GigForm, EmployerProfileForm
+from ..security import security_event
 from ..utils import (
     auto_close_expired_gigs,
     get_session_email,
@@ -12,6 +14,8 @@ from ..utils import (
     notify_selected_student_on_telegram,
     post_gig_to_telegram_channel,
 )
+
+logger = logging.getLogger(__name__)
 
 @employer_only
 def employer_dashboard_view(request):
@@ -107,7 +111,8 @@ def post_gig(request):
     except EmployerProfile.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Complete employer profile first.'})
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        logger.exception("post_gig failed for %s", email)
+        return JsonResponse({'success': False, 'message': 'Failed to post gig. Please try again.'}, status=500)
 
 @employer_only
 def employer_manage_gig(request):
@@ -141,7 +146,8 @@ def employer_manage_gig(request):
     except Gig.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Gig not found.'})
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        logger.exception("employer_manage_gig failed for %s", email)
+        return JsonResponse({'success': False, 'message': 'Operation failed. Please try again.'}, status=500)
 
 @staff_only
 def get_gig_details(request):
@@ -214,7 +220,8 @@ def update_gig(request):
     except Gig.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Gig not found.'})
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        logger.exception("update_gig failed for %s", email)
+        return JsonResponse({'success': False, 'message': 'Gig update failed. Please try again.'}, status=500)
 
 @employer_only
 def manage_application(request):
@@ -256,7 +263,8 @@ def manage_application(request):
     except Application.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Application not found.'})
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        logger.exception("manage_application failed for %s", email)
+        return JsonResponse({'success': False, 'message': 'Application update failed. Please try again.'}, status=500)
 
 @employer_only
 def register_employer(request):
@@ -284,11 +292,16 @@ def register_employer(request):
     except json.JSONDecodeError:
         return JsonResponse({'success': False, 'message': 'Invalid JSON.'}, status=400)
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        logger.exception("register_employer failed for %s", email)
+        return JsonResponse({'success': False, 'message': 'Profile save failed. Please try again.'}, status=500)
 
+@role_required([UserRole.Roles.ADMIN, UserRole.Roles.EMPLOYER, UserRole.Roles.STUDENT])
 def get_employer_details(request):
     """Get public-ish details of an employer (for gig preview)."""
     emp_id = request.GET.get('id')
+    if not (emp_id and str(emp_id).isdigit()):
+        return JsonResponse({'success': False, 'message': 'Invalid employer id.'}, status=400)
+
     try:
         e = EmployerProfile.objects.get(id=emp_id)
         data = {
@@ -302,4 +315,5 @@ def get_employer_details(request):
         }
         return JsonResponse({'success': True, 'data': data})
     except EmployerProfile.DoesNotExist:
+        security_event(event='employer_details_missing', level='warning', employer_id=emp_id)
         return JsonResponse({'success': False, 'message': 'Not found.'})

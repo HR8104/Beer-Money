@@ -1,8 +1,13 @@
 import json
+import logging
 from django.http import JsonResponse
-from ..models import Application, Review
-from ..utils import get_session_email, log_admin_action
+from ..decorators import role_required
+from ..models import Application, Review, UserRole
+from ..utils import get_session_email, log_admin_action, get_admin_emails
 
+logger = logging.getLogger(__name__)
+
+@role_required([UserRole.Roles.ADMIN, UserRole.Roles.EMPLOYER, UserRole.Roles.STUDENT])
 def submit_review(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'message': 'Invalid method.'}, status=405)
@@ -54,13 +59,27 @@ def submit_review(request):
     except Application.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Application not found.'})
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        logger.exception("submit_review failed for %s", email)
+        return JsonResponse({'success': False, 'message': 'Review submission failed. Please try again.'}, status=500)
 
+@role_required([UserRole.Roles.ADMIN, UserRole.Roles.EMPLOYER, UserRole.Roles.STUDENT])
 def get_reviews_for_application(request):
     """Optional: View to get both reviews for an application."""
     app_id = request.GET.get('application_id')
+    if not (app_id and str(app_id).isdigit()):
+        return JsonResponse({'success': False, 'message': 'Invalid application id.'}, status=400)
+
+    email = get_session_email(request)
     try:
         application = Application.objects.get(id=app_id)
+
+        is_admin = email in get_admin_emails() or UserRole.objects.filter(
+            email=email, role=UserRole.Roles.ADMIN
+        ).exists()
+        is_owner = email in {application.student.email, application.gig.employer.email}
+        if not (is_admin or is_owner):
+            return JsonResponse({'success': False, 'message': 'Unauthorized.'}, status=403)
+
         reviews = application.reviews.all()
         data = []
         for r in reviews:
@@ -74,4 +93,5 @@ def get_reviews_for_application(request):
     except Application.DoesNotExist:
         return JsonResponse({'success': False, 'message': 'Application not found.'})
     except Exception as e:
-        return JsonResponse({'success': False, 'message': str(e)})
+        logger.exception("get_reviews_for_application failed for %s", email)
+        return JsonResponse({'success': False, 'message': 'Could not fetch reviews.'}, status=500)

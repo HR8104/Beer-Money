@@ -1,4 +1,5 @@
 import json
+import logging
 
 from django.db import IntegrityError
 from django.http import JsonResponse
@@ -7,6 +8,8 @@ from django.shortcuts import render
 from ..decorators import student_only
 from ..models import Application, Gig, UserProfile
 from ..utils import auto_close_expired_gigs, get_session_email, is_gig_expired
+
+logger = logging.getLogger(__name__)
 
 
 @student_only
@@ -94,4 +97,5 @@ def apply_to_gig(request):
     except IntegrityError:
         return JsonResponse({"success": False, "message": "You have already applied for this gig."})
     except Exception as exc:
-        return JsonResponse({"success": False, "message": str(exc)})
+        logger.exception("apply_to_gig failed for %s", email)
+        return JsonResponse({"success": False, "message": "Application failed. Please try again."}, status=500)

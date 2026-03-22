@@ -4,12 +4,22 @@ import random
 from datetime import datetime, timedelta
 
 from django.conf import settings
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.http import JsonResponse
 from django.utils import timezone
 
 from ..forms import StudentProfileForm
 from ..models import EmployerProfile, UserProfile, UserRole
+from ..security import (
+    clear_security_key,
+    get_client_ip,
+    is_locked,
+    is_rate_limited,
+    security_alert,
+    security_event,
+    set_lock,
+)
 from ..utils import get_admin_emails, get_session_email
 
 logger = logging.getLogger(__name__)
@@ -35,6 +45,28 @@ def _send_login_otp_email(email, otp, *, is_resend=False):
         recipient_list=[email],
         fail_silently=False,
     )
+
+
+def _limit_scope(request, email: str) -> str:
+    return f"{get_client_ip(request)}:{email or 'unknown'}"
+
+
+def _check_rate_limit(request, endpoint: str, scope: str, limit: int) -> JsonResponse | None:
+    if is_rate_limited(endpoint, scope, limit, settings.OTP_RATE_LIMIT_WINDOW_SECONDS):
+        security_event(
+            event="rate_limit_block",
+            level="warning",
+            endpoint=endpoint,
+            scope=scope,
+        )
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Too many attempts. Please try again later.",
+            },
+            status=429,
+        )
+    return None
 
 
 def register_user(request):
@@ -63,8 +95,9 @@ def register_user(request):
         return JsonResponse({"success": False, "message": f"Validation failed: {form.errors.as_text()}"})
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "message": "Invalid JSON."}, status=400)
-    except Exception as exc:
-        return JsonResponse({"success": False, "message": f"Operation failed: {str(exc)}"})
+    except Exception:
+        logger.exception("Register user failed for %s", email)
+        return JsonResponse({"success": False, "message": "Operation failed. Please try again."}, status=500)
 
 
 def send_otp(request):
@@ -81,6 +114,11 @@ def send_otp(request):
     if not email or "@" not in email:
         return JsonResponse({"success": False, "message": "Please enter a valid email address."})
 
+    scope = _limit_scope(request, email)
+    blocked = _check_rate_limit(request, "otp_send", scope, settings.OTP_SEND_RATE_LIMIT)
+    if blocked:
+        return blocked
+
     otp = str(random.randint(100000, 999999))
     request.session["otp"] = otp
     request.session["otp_email"] = email
@@ -89,8 +127,8 @@ def send_otp(request):
     try:
         _send_login_otp_email(email, otp, is_resend=False)
     except Exception as exc:
-        # Keep flow usable in development if SMTP is unavailable.
-        logger.warning("OTP email send failed for %s; otp=%s; error=%s", email, otp, exc)
+        logger.warning("OTP email send failed for %s", email, exc_info=exc)
+        security_event(event="otp_send_email_failed", level="warning", email=email, scope=scope)
         return JsonResponse(
             {
                 "success": True,
@@ -98,6 +136,7 @@ def send_otp(request):
             }
         )
 
+    security_event(event="otp_sent", email=email, scope=scope)
     return JsonResponse({"success": True, "message": f"OTP sent to {email}."})
 
 
@@ -115,6 +154,18 @@ def verify_otp(request):
     stored_otp = request.session.get("otp")
     stored_email = request.session.get("otp_email", "").strip().lower()
     otp_created = request.session.get("otp_created")
+    scope = _limit_scope(request, stored_email)
+
+    verify_block = _check_rate_limit(request, "otp_verify", scope, settings.OTP_VERIFY_RATE_LIMIT)
+    if verify_block:
+        return verify_block
+
+    if is_locked("otp_verify_lock", scope):
+        security_event(event="otp_verify_locked", level="warning", email=stored_email, scope=scope)
+        return JsonResponse(
+            {"success": False, "message": "Too many failed OTP attempts. Please try again later."},
+            status=429,
+        )
 
     if not stored_otp or not otp_created:
         return JsonResponse({"success": False, "message": "No OTP found. Please request a new one."})
@@ -127,6 +178,27 @@ def verify_otp(request):
         return JsonResponse({"success": False, "message": "OTP has expired. Please request a new one."})
 
     if entered_otp != stored_otp:
+        fail_scope = f"{scope}:failed"
+        fail_key = f"sec:otp_verify_failure:{fail_scope}"
+        failures = cache.get(fail_key, 0) + 1
+        cache.set(fail_key, failures, timeout=settings.OTP_VERIFY_LOCKOUT_SECONDS)
+
+        if failures >= settings.OTP_VERIFY_MAX_FAILURES:
+            set_lock("otp_verify_lock", scope, settings.OTP_VERIFY_LOCKOUT_SECONDS)
+            _clear_otp_session(request)
+            security_alert(
+                event="otp_lockout",
+                message="OTP verification lockout triggered",
+                email=stored_email,
+                scope=scope,
+                failures=failures,
+            )
+            return JsonResponse(
+                {"success": False, "message": "Too many failed OTP attempts. Please request a new OTP later."},
+                status=429,
+            )
+
+        security_event(event="otp_verify_failed", level="warning", email=stored_email, scope=scope)
         return JsonResponse({"success": False, "message": "Incorrect OTP. Please try again."})
 
     request.session["user_email"] = stored_email
@@ -138,16 +210,18 @@ def verify_otp(request):
         role_obj.save(update_fields=["role"])
 
     if role_obj.is_frozen:
+        security_event(event="login_blocked_frozen", level="warning", email=stored_email)
         return JsonResponse(
             {"success": False, "message": "Your account is frozen. Please contact support."},
             status=403,
         )
 
-    is_admin = role_obj.role == UserRole.Roles.ADMIN
-    request.session["is_admin"] = is_admin
+    request.session["is_admin"] = role_obj.role == UserRole.Roles.ADMIN
     request.session["user_role"] = role_obj.role
 
     _clear_otp_session(request)
+    clear_security_key("otp_verify_lock", scope)
+    clear_security_key("otp_verify_failure", f"{scope}:failed")
 
     if role_obj.role == UserRole.Roles.ADMIN:
         redirect_url = "/admin-dashboard/"
@@ -156,6 +230,7 @@ def verify_otp(request):
     else:
         redirect_url = "/home/"
 
+    security_event(event="login_success", email=stored_email, role=role_obj.role)
     return JsonResponse({"success": True, "message": "Login successful!", "redirect": redirect_url})
 
 
@@ -168,6 +243,11 @@ def resend_otp(request):
     if not email:
         return JsonResponse({"success": False, "message": "No email found. Please enter your email first."})
 
+    scope = _limit_scope(request, email)
+    blocked = _check_rate_limit(request, "otp_resend", scope, settings.OTP_RESEND_RATE_LIMIT)
+    if blocked:
+        return blocked
+
     otp = str(random.randint(100000, 999999))
     request.session["otp"] = otp
     request.session["otp_created"] = timezone.now().isoformat()
@@ -175,9 +255,11 @@ def resend_otp(request):
     try:
         _send_login_otp_email(email, otp, is_resend=True)
     except Exception as exc:
-        logger.warning("OTP resend failed for %s; otp=%s; error=%s", email, otp, exc)
+        logger.warning("OTP resend failed for %s", email, exc_info=exc)
+        security_event(event="otp_resend_email_failed", level="warning", email=email, scope=scope)
         return JsonResponse({"success": True, "message": f"OTP resent to {email}. (Dev mode)"})
 
+    security_event(event="otp_resent", email=email, scope=scope)
     return JsonResponse({"success": True, "message": f"New OTP sent to {email}."})
 
 
@@ -208,5 +290,6 @@ def update_profile(request):
         return JsonResponse({"success": False, "message": "Profile not found."})
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "message": "Invalid JSON."}, status=400)
-    except Exception as exc:
-        return JsonResponse({"success": False, "message": str(exc)})
+    except Exception:
+        logger.exception("Profile update failed for %s", email)
+        return JsonResponse({"success": False, "message": "Profile update failed. Please try again."}, status=500)
