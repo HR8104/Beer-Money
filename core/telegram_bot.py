@@ -15,6 +15,7 @@ from django.utils import timezone
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (
     Application,
+    CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
     ConversationHandler,
@@ -23,6 +24,7 @@ from telegram.ext import (
     BasePersistence,
     PersistenceInput,
 )
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from copy import deepcopy
 
 from core.forms import StudentProfileForm
@@ -73,7 +75,7 @@ def _parse_date(value: str) -> date | None:
 
 def _is_valid_phone(value: str) -> bool:
     cleaned = value.strip()
-    return cleaned.isdigit() and 7 <= len(cleaned) <= 15
+    return cleaned.isdigit() and len(cleaned) == 10
 
 
 def _get_telegram_registration_by_user(telegram_user_id: int) -> TelegramRegistration | None:
@@ -347,6 +349,7 @@ async def handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     existing_profile = await profile_by_email_async(email)
     context.user_data["email"] = email
+    context.user_data["is_existing_user"] = bool(existing_profile)
 
     if existing_profile:
         already_linked_elsewhere = await email_linked_to_other_telegram_async(email, user.id)
@@ -357,20 +360,25 @@ async def handle_email(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             context.user_data.clear()
             return ConversationHandler.END
 
-        success, error_message = await send_email_otp_async(email, user.id)
-        if not success:
-            await update.message.reply_text(error_message)
-            context.user_data.clear()
-            return ConversationHandler.END
-        await update.message.reply_text(
+    success, error_message = await send_email_otp_async(email, user.id)
+    if not success:
+        await update.message.reply_text(error_message)
+        context.user_data.clear()
+        return ConversationHandler.END
+
+    if existing_profile:
+        msg = (
             "We found this email in web registration.\n"
             "A one-time OTP has been sent to your email.\n"
             "Please enter the 6-digit OTP:"
         )
-        return EMAIL_OTP
-
-    await update.message.reply_text("Enter your full name:")
-    return FULL_NAME
+    else:
+        msg = (
+            "A one-time OTP has been sent to your email to verify your address.\n"
+            "Please enter the 6-digit OTP:"
+        )
+    await update.message.reply_text(msg)
+    return EMAIL_OTP
 
 
 async def handle_apply_brief(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -420,18 +428,27 @@ async def handle_email_otp(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await update.message.reply_text(verify_message)
         return EMAIL_OTP
 
-    linked, link_message = await link_existing_web_user_async(email, user, chat)
-    if not linked:
-        await update.message.reply_text(link_message, reply_markup=ReplyKeyboardRemove())
+    is_existing = context.user_data.get("is_existing_user", False)
+    if is_existing:
+        linked, link_message = await link_existing_web_user_async(email, user, chat)
+        if not linked:
+            await update.message.reply_text(link_message, reply_markup=ReplyKeyboardRemove())
+            context.user_data.clear()
+            return ConversationHandler.END
+
+        await update.message.reply_text(
+            "Verification complete. Your web and Telegram registrations are now linked.",
+            reply_markup=ReplyKeyboardRemove(),
+        )
         context.user_data.clear()
         return ConversationHandler.END
-
-    await update.message.reply_text(
-        "Verification complete. Your web and Telegram registrations are now linked.",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-    context.user_data.clear()
-    return ConversationHandler.END
+    else:
+        await update.message.reply_text(
+            "Email verified successfully. Let's continue with your registration.\n\n"
+            "Enter your full name:",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        return FULL_NAME
 
 
 async def handle_full_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -442,7 +459,7 @@ async def handle_full_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         await update.message.reply_text("Full name looks too short. Please re-enter.")
         return FULL_NAME
     context.user_data["full_name"] = full_name
-    await update.message.reply_text("Enter your mobile number (digits only):")
+    await update.message.reply_text("Enter your 10-digit mobile number (digits only):")
     return MOBILE
 
 
@@ -561,24 +578,41 @@ async def _show_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE)
         f"Profile Picture URL: {context.user_data.get('profile_picture_url') or '(empty)'}\n\n"
         "Confirm these details?"
     )
-    keyboard = [["yes", "no"]]
-    await update.message.reply_text(
-        summary,
-        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True),
-    )
+    keyboard = [
+        [
+            InlineKeyboardButton("Yes", callback_data="confirm_yes"),
+            InlineKeyboardButton("No", callback_data="confirm_no"),
+        ]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    if update.callback_query:
+        await update.callback_query.edit_message_text(summary, reply_markup=reply_markup)
+    else:
+        await update.message.reply_text(
+            summary,
+            reply_markup=reply_markup,
+        )
     return CONFIRM
 
 
 async def handle_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if not update.message:
-        return CONFIRM
+    query = update.callback_query
+    if query:
+        await query.answer()
+        answer = query.data
+    else:
+        # Fallback for text messages if any
+        answer = _normalize_text(update.message.text).lower()
+        if answer == "yes": answer = "confirm_yes"
+        elif answer == "no": answer = "confirm_no"
+
     user = update.effective_user
     chat = update.effective_chat
     if not user or not chat:
         return ConversationHandler.END
 
-    answer = _normalize_text(update.message.text).lower()
-    if answer == "no":
+    if answer == "confirm_no":
         keyboard = [
             ["Full Name", "Mobile"],
             ["Gender", "DOB"],
@@ -586,14 +620,21 @@ async def handle_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             ["Skills", "Intro Video"],
             ["Profile Picture", "Cancel Registration"],
         ]
-        await update.message.reply_text(
-            "What field would you like to edit?",
-            reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True),
-        )
+        msg = "What field would you like to edit?"
+        reply_markup = ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+        if query:
+            await query.edit_message_reply_markup(reply_markup=None)
+            await query.message.reply_text(msg, reply_markup=reply_markup)
+        else:
+            await update.message.reply_text(msg, reply_markup=reply_markup)
         return EDIT_CHOICE
 
-    if answer != "yes":
-        await update.message.reply_text("Please reply with 'yes' or 'no'.")
+    if answer != "confirm_yes":
+        msg = "Please use the buttons to confirm."
+        if query:
+            await query.message.reply_text(msg)
+        else:
+            await update.message.reply_text(msg)
         return CONFIRM
 
     payload: dict[str, Any] = {
@@ -611,14 +652,19 @@ async def handle_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     ok, message = await create_new_telegram_registration_async(payload, user, chat)
     if not ok:
-        await update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
+        if query:
+            await query.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
+        else:
+            await update.message.reply_text(message, reply_markup=ReplyKeyboardRemove())
         context.user_data.clear()
         return ConversationHandler.END
 
-    await update.message.reply_text(
-        "Telegram registration completed successfully.",
-        reply_markup=ReplyKeyboardRemove(),
-    )
+    success_msg = "Telegram registration completed successfully."
+    if query:
+        await query.edit_message_reply_markup(reply_markup=None)
+        await query.message.reply_text(success_msg, reply_markup=ReplyKeyboardRemove())
+    else:
+        await update.message.reply_text(success_msg, reply_markup=ReplyKeyboardRemove())
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -652,6 +698,8 @@ async def handle_edit_choice(update: Update, context: ContextTypes.DEFAULT_TYPE)
             "Select new gender:",
             reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True),
         )
+    elif choice == "Mobile":
+        await update.message.reply_text("Enter new 10-digit mobile number:", reply_markup=ReplyKeyboardRemove())
     else:
         await update.message.reply_text(f"Enter new value for {choice}:", reply_markup=ReplyKeyboardRemove())
 
@@ -669,7 +717,7 @@ async def handle_edit_value(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         context.user_data["full_name"] = value
     elif field_choice == "Mobile":
         if not _is_valid_phone(value):
-            await update.message.reply_text("Invalid mobile. Enter new mobile:")
+            await update.message.reply_text("Invalid mobile. Please enter exactly 10 digits:")
             return EDIT_VALUE
         context.user_data["mobile"] = value
     elif field_choice == "Gender":
@@ -857,7 +905,10 @@ def get_application():
             PROFILE_PICTURE_URL: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND, handle_profile_picture_url)
             ],
-            CONFIRM: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirm)],
+            CONFIRM: [
+                CallbackQueryHandler(handle_confirm),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, handle_confirm),
+            ],
             EDIT_CHOICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_edit_choice)],
             EDIT_VALUE: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_edit_value)],
         },
