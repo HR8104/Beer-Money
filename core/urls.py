@@ -6,6 +6,8 @@ from .views import reviews
 
 urlpatterns = [
     path('', main.index, name='index'),
+    path('robots.txt', main.robots_txt, name='robots_txt'),
+    path('.well-known/security.txt', main.security_txt, name='security_txt'),
     path('login/', main.login_view, name='login'),
     path('home/', student.home_view, name='home'),
     path('logout/', main.logout_view, name='logout'),

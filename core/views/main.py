@@ -1,4 +1,8 @@
+from datetime import timedelta
+
+from django.http import HttpResponse
 from django.shortcuts import render, redirect
+from django.utils import timezone
 from ..utils import get_session_email
 from ..models import UserRole
 
@@ -33,3 +37,33 @@ def logout_view(request):
     """Clear session and redirect to landing page."""
     request.session.flush()
     return redirect('index')
+
+
+def robots_txt(request):
+    """Serve robots.txt for search engine crawlers."""
+    content = "\n".join(
+        [
+            "User-agent: *",
+            "Disallow: /admin/",
+            "Disallow: /api/",
+            "Allow: /",
+        ]
+    )
+    return HttpResponse(content, content_type="text/plain")
+
+
+def security_txt(request):
+    """Serve security.txt for responsible disclosure details."""
+    host = request.get_host().split(":")[0]
+    expires = (timezone.now() + timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    canonical = f"https://{host}/.well-known/security.txt"
+
+    content = "\n".join(
+        [
+            f"Contact: mailto:security@{host}",
+            f"Expires: {expires}",
+            "Preferred-Languages: en",
+            f"Canonical: {canonical}",
+        ]
+    )
+    return HttpResponse(content, content_type="text/plain")
