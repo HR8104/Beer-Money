@@ -8,8 +8,10 @@ class SecurityHeadersMiddleware:
         response.setdefault(
             "Content-Security-Policy",
             "default-src 'self'; img-src 'self' data: https:; "
-            "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; "
-            "font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "script-src 'self' 'unsafe-inline'; "
+            "font-src 'self' data: https://fonts.gstatic.com; "
+            "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
         )
         response.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
