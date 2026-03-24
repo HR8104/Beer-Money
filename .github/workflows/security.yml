@@ -26,5 +26,5 @@ jobs:
       - name: pip-audit
         run: pip-audit -r requirements.txt
 
-      - name: safety check
-        run: safety check --full-report
+      - name: safety scan
+        run: safety scan --target .
