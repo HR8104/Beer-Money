@@ -24,7 +24,7 @@ jobs:
           pip install pip-audit safety
 
       - name: pip-audit
-        run: pip-audit
+        run: pip-audit -r requirements.txt
 
       - name: safety check
         run: safety check --full-report
