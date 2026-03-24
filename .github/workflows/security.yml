@@ -26,5 +26,12 @@ jobs:
       - name: pip-audit
         run: pip-audit -r requirements.txt
 
-      - name: safety check
-        run: safety check --full-report
+      - name: safety scan (optional with API key)
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
+        run: |
+          if [ -z "$SAFETY_API_KEY" ]; then
+            echo "SAFETY_API_KEY is not set; skipping safety scan."
+            exit 0
+          fi
+          safety scan --target . --key "$SAFETY_API_KEY"
